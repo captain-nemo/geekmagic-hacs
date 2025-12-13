@@ -31,12 +31,32 @@ WIDGET_CHART = "chart"
 WIDGET_TEXT = "text"
 WIDGET_BAR = "bar"
 
-# Colors (RGB tuples)
+# Colors (RGB tuples) - Using palettable Bold and Dark2 palettes
+# These are colorblind-friendly and professionally curated
+
+# Base colors
 COLOR_WHITE = (255, 255, 255)
 COLOR_BLACK = (0, 0, 0)
-COLOR_CYAN = (0, 212, 255)
-COLOR_GREEN = (0, 255, 136)
-COLOR_YELLOW = (255, 204, 0)
-COLOR_RED = (255, 107, 107)
-COLOR_GRAY = (136, 136, 136)
-COLOR_DARK_GRAY = (68, 68, 68)
+COLOR_GRAY = (100, 100, 100)
+COLOR_DARK_GRAY = (40, 40, 40)
+COLOR_PANEL = (18, 18, 18)
+COLOR_PANEL_BORDER = (50, 50, 50)
+
+# Primary UI colors from Bold_6 palette (vibrant, distinguishable)
+# Bold_6: Purple, Teal, Blue, Yellow, Pink, Green
+COLOR_PURPLE = (127, 60, 141)
+COLOR_TEAL = (17, 165, 121)
+COLOR_BLUE = (57, 105, 172)
+COLOR_YELLOW = (242, 183, 1)
+COLOR_PINK = (231, 63, 116)
+COLOR_GREEN = (128, 186, 90)
+
+# Accent colors from Dark2_8 palette (colorblind-friendly)
+COLOR_CYAN = (27, 158, 119)  # Teal variant
+COLOR_ORANGE = (217, 95, 2)
+COLOR_LAVENDER = (117, 112, 179)
+COLOR_MAGENTA = (231, 41, 138)
+COLOR_LIME = (102, 166, 30)
+COLOR_GOLD = (230, 171, 2)
+COLOR_BROWN = (166, 118, 29)
+COLOR_RED = (231, 76, 60)  # Custom red for alerts/errors
