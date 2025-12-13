@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import math
 from io import BytesIO
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw, ImageFont
@@ -30,9 +31,14 @@ if TYPE_CHECKING:
 # Supersampling scale for anti-aliasing
 SUPERSAMPLE_SCALE = 2
 
+# Bundled font directory (relative to this file)
+_FONTS_DIR = Path(__file__).parent / "fonts"
+
 
 def _load_font(size: int, bold: bool = False) -> FreeTypeFont | ImageFont.ImageFont:
     """Load a TrueType font or fall back to default.
+
+    Prefers bundled DejaVu Sans for consistent Unicode support across platforms.
 
     Args:
         size: Font size in pixels
@@ -43,16 +49,20 @@ def _load_font(size: int, bold: bool = False) -> FreeTypeFont | ImageFont.ImageF
     """
     if bold:
         font_paths = [
+            # Bundled font (best Unicode support, works in HA Docker)
+            _FONTS_DIR / "DejaVuSans-Bold.ttf",
+            # System fonts as fallback
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # Linux
             ("/System/Library/Fonts/Helvetica.ttc", 1),  # macOS (index 1 = bold)
-            "/System/Library/Fonts/SFNSText-Bold.ttf",  # macOS newer
             "C:/Windows/Fonts/arialbd.ttf",  # Windows
         ]
     else:
         font_paths = [
+            # Bundled font (best Unicode support, works in HA Docker)
+            _FONTS_DIR / "DejaVuSans.ttf",
+            # System fonts as fallback
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
             ("/System/Library/Fonts/Helvetica.ttc", 0),  # macOS (index 0 = regular)
-            "/System/Library/Fonts/SFNSText.ttf",  # macOS newer
             "C:/Windows/Fonts/arial.ttf",  # Windows
         ]
 
@@ -61,7 +71,7 @@ def _load_font(size: int, bold: bool = False) -> FreeTypeFont | ImageFont.ImageF
             if isinstance(path_entry, tuple):
                 path, index = path_entry
                 return ImageFont.truetype(path, size, index=index)
-            return ImageFont.truetype(path_entry, size)
+            return ImageFont.truetype(str(path_entry), size)
         except OSError:
             continue
 
