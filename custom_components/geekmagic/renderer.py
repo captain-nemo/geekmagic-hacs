@@ -31,18 +31,37 @@ if TYPE_CHECKING:
 SUPERSAMPLE_SCALE = 2
 
 
-def _load_font(size: int) -> FreeTypeFont | ImageFont.ImageFont:
-    """Load a TrueType font or fall back to default."""
-    font_paths = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
-        "/System/Library/Fonts/Helvetica.ttc",  # macOS
-        "/System/Library/Fonts/SFNSText.ttf",  # macOS newer
-        "C:/Windows/Fonts/arial.ttf",  # Windows
-    ]
+def _load_font(size: int, bold: bool = False) -> FreeTypeFont | ImageFont.ImageFont:
+    """Load a TrueType font or fall back to default.
 
-    for path in font_paths:
+    Args:
+        size: Font size in pixels
+        bold: Whether to load bold variant
+
+    Returns:
+        Loaded font or default font
+    """
+    if bold:
+        font_paths = [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # Linux
+            ("/System/Library/Fonts/Helvetica.ttc", 1),  # macOS (index 1 = bold)
+            "/System/Library/Fonts/SFNSText-Bold.ttf",  # macOS newer
+            "C:/Windows/Fonts/arialbd.ttf",  # Windows
+        ]
+    else:
+        font_paths = [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+            ("/System/Library/Fonts/Helvetica.ttc", 0),  # macOS (index 0 = regular)
+            "/System/Library/Fonts/SFNSText.ttf",  # macOS newer
+            "C:/Windows/Fonts/arial.ttf",  # Windows
+        ]
+
+    for path_entry in font_paths:
         try:
-            return ImageFont.truetype(path, size)
+            if isinstance(path_entry, tuple):
+                path, index = path_entry
+                return ImageFont.truetype(path, size, index=index)
+            return ImageFont.truetype(path_entry, size)
         except OSError:
             continue
 
@@ -68,6 +87,11 @@ class Renderer:
         self.font_large = _load_font(24 * self._scale)
         self.font_xlarge = _load_font(36 * self._scale)
         self.font_huge = _load_font(52 * self._scale)
+
+        # Bold font variants for emphasis
+        self.font_small_bold = _load_font(13 * self._scale, bold=True)
+        self.font_regular_bold = _load_font(15 * self._scale, bold=True)
+        self.font_medium_bold = _load_font(18 * self._scale, bold=True)
 
     def _s(self, value: float) -> int:
         """Scale a value for supersampling."""
@@ -541,7 +565,15 @@ class Renderer:
 
         Args:
             draw: ImageDraw instance
-            icon: Icon name (cpu, memory, disk, temp, power, network, home, sun, drop, bolt)
+            icon: Icon name. Supported icons:
+                - System: cpu, memory, disk, temp, power, bolt, network, home
+                - Weather: sun, drop, cloud, rain, moon, wind
+                - Media: play, pause, skip_prev, skip_next, music
+                - Arrows: arrow_up, arrow_down
+                - Status: check, warning, heart, steps, flame
+                - Location: location, building
+                - Security: lock, unlock, motion, bell
+                - Other: battery, lightbulb
             position: (x, y) top-left corner
             size: Icon size
             color: Icon color
@@ -681,6 +713,478 @@ class Renderer:
                 (cx - r, y + s - self._s(4) - r, cx + r, y + s - self._s(4) + r),
                 start=0,
                 end=180,
+                fill=color,
+            )
+
+        # Media controls
+        elif icon == "play":
+            # Right-pointing triangle
+            draw.polygon(
+                [
+                    (x + self._s(3), y + self._s(2)),
+                    (x + s - self._s(2), y + half),
+                    (x + self._s(3), y + s - self._s(2)),
+                ],
+                fill=color,
+            )
+
+        elif icon == "pause":
+            # Two vertical bars
+            bar_w = s // 4
+            gap = s // 6
+            draw.rectangle(
+                (x + gap, y + self._s(2), x + gap + bar_w, y + s - self._s(2)), fill=color
+            )
+            draw.rectangle(
+                (x + s - gap - bar_w, y + self._s(2), x + s - gap, y + s - self._s(2)), fill=color
+            )
+
+        elif icon == "skip_prev":
+            # |◀◀ - bar + two triangles pointing left
+            bar_x = x + self._s(2)
+            draw.rectangle(
+                (bar_x, y + self._s(3), bar_x + self._s(2), y + s - self._s(3)), fill=color
+            )
+            # First triangle
+            tri_x = x + s // 3
+            draw.polygon(
+                [
+                    (tri_x + quarter, y + self._s(3)),
+                    (tri_x, y + half),
+                    (tri_x + quarter, y + s - self._s(3)),
+                ],
+                fill=color,
+            )
+            # Second triangle
+            tri_x2 = x + s // 3 + quarter
+            draw.polygon(
+                [
+                    (tri_x2 + quarter, y + self._s(3)),
+                    (tri_x2, y + half),
+                    (tri_x2 + quarter, y + s - self._s(3)),
+                ],
+                fill=color,
+            )
+
+        elif icon == "skip_next":
+            # ▶▶| - two triangles pointing right + bar
+            bar_x = x + s - self._s(4)
+            draw.rectangle(
+                (bar_x, y + self._s(3), bar_x + self._s(2), y + s - self._s(3)), fill=color
+            )
+            # First triangle
+            tri_x = x + self._s(2)
+            draw.polygon(
+                [
+                    (tri_x, y + self._s(3)),
+                    (tri_x + quarter, y + half),
+                    (tri_x, y + s - self._s(3)),
+                ],
+                fill=color,
+            )
+            # Second triangle
+            tri_x2 = x + self._s(2) + quarter
+            draw.polygon(
+                [
+                    (tri_x2, y + self._s(3)),
+                    (tri_x2 + quarter, y + half),
+                    (tri_x2, y + s - self._s(3)),
+                ],
+                fill=color,
+            )
+
+        elif icon == "music":
+            # Music note - quarter note
+            note_r = s // 5
+            stem_x = x + s - self._s(4)
+            # Note head (filled ellipse)
+            draw.ellipse(
+                (
+                    x + self._s(2),
+                    y + s - note_r * 2,
+                    x + self._s(2) + note_r * 2,
+                    y + s - self._s(1),
+                ),
+                fill=color,
+            )
+            # Stem
+            draw.rectangle(
+                (stem_x - self._s(1), y + self._s(2), stem_x + self._s(1), y + s - note_r),
+                fill=color,
+            )
+
+        # Arrows & indicators
+        elif icon == "arrow_up":
+            # Upward pointing triangle
+            draw.polygon(
+                [
+                    (x + half, y + self._s(2)),
+                    (x + self._s(2), y + s - self._s(2)),
+                    (x + s - self._s(2), y + s - self._s(2)),
+                ],
+                fill=color,
+            )
+
+        elif icon == "arrow_down":
+            # Downward pointing triangle
+            draw.polygon(
+                [
+                    (x + half, y + s - self._s(2)),
+                    (x + self._s(2), y + self._s(2)),
+                    (x + s - self._s(2), y + self._s(2)),
+                ],
+                fill=color,
+            )
+
+        elif icon == "check":
+            # Checkmark
+            draw.line(
+                [
+                    (x + self._s(2), y + half),
+                    (x + half - self._s(1), y + s - self._s(3)),
+                    (x + s - self._s(2), y + self._s(3)),
+                ],
+                fill=color,
+                width=self._s(2),
+            )
+
+        elif icon == "warning":
+            # Triangle with exclamation mark
+            draw.polygon(
+                [
+                    (x + half, y + self._s(1)),
+                    (x + self._s(1), y + s - self._s(2)),
+                    (x + s - self._s(1), y + s - self._s(2)),
+                ],
+                outline=color,
+            )
+            # Exclamation mark
+            draw.rectangle(
+                (x + half - self._s(1), y + quarter, x + half + self._s(1), y + half + self._s(2)),
+                fill=color,
+            )
+            draw.ellipse(
+                (
+                    x + half - self._s(1),
+                    y + s - self._s(5),
+                    x + half + self._s(1),
+                    y + s - self._s(3),
+                ),
+                fill=color,
+            )
+
+        # Activity & health
+        elif icon == "heart":
+            # Heart shape
+            cx = x + half
+            # Two circles at top
+            r = quarter - self._s(1)
+            draw.ellipse((cx - r * 2, y + self._s(2), cx, y + self._s(2) + r * 2), fill=color)
+            draw.ellipse((cx, y + self._s(2), cx + r * 2, y + self._s(2) + r * 2), fill=color)
+            # Triangle at bottom
+            draw.polygon(
+                [
+                    (x + self._s(2), y + quarter + self._s(2)),
+                    (cx, y + s - self._s(2)),
+                    (x + s - self._s(2), y + quarter + self._s(2)),
+                ],
+                fill=color,
+            )
+
+        elif icon == "steps":
+            # Walking figure (simplified)
+            cx = x + half
+            # Head
+            head_r = s // 6
+            draw.ellipse(
+                (cx - head_r, y + self._s(1), cx + head_r, y + self._s(1) + head_r * 2), fill=color
+            )
+            # Body
+            draw.line(
+                [(cx, y + self._s(1) + head_r * 2), (cx, y + half + quarter)],
+                fill=color,
+                width=self._s(2),
+            )
+            # Legs (walking pose)
+            draw.line(
+                [(cx, y + half + quarter), (x + self._s(3), y + s - self._s(1))],
+                fill=color,
+                width=self._s(2),
+            )
+            draw.line(
+                [(cx, y + half + quarter), (x + s - self._s(3), y + s - self._s(1))],
+                fill=color,
+                width=self._s(2),
+            )
+            # Arms
+            draw.line(
+                [(cx, y + quarter + head_r), (x + self._s(2), y + half)],
+                fill=color,
+                width=self._s(2),
+            )
+            draw.line(
+                [(cx, y + quarter + head_r), (x + s - self._s(2), y + half)],
+                fill=color,
+                width=self._s(2),
+            )
+
+        elif icon == "flame":
+            # Fire/flame shape
+            cx = x + half
+            draw.polygon(
+                [
+                    (cx, y + self._s(1)),
+                    (x + self._s(2), y + half + quarter),
+                    (x + quarter, y + s - self._s(2)),
+                    (cx, y + half + self._s(2)),
+                    (x + s - quarter, y + s - self._s(2)),
+                    (x + s - self._s(2), y + half + quarter),
+                ],
+                fill=color,
+            )
+
+        # Location & buildings
+        elif icon == "location":
+            # Map pin/marker
+            cx = x + half
+            r = quarter
+            # Circle at top
+            draw.ellipse(
+                (cx - r, y + self._s(2), cx + r, y + self._s(2) + r * 2),
+                outline=color,
+                width=self._s(2),
+            )
+            # Point at bottom
+            draw.polygon(
+                [
+                    (cx - r + self._s(1), y + self._s(2) + r),
+                    (cx, y + s - self._s(2)),
+                    (cx + r - self._s(1), y + self._s(2) + r),
+                ],
+                fill=color,
+            )
+
+        elif icon == "building":
+            # Simple building
+            # Main structure
+            draw.rectangle(
+                (x + self._s(3), y + self._s(3), x + s - self._s(3), y + s - self._s(1)),
+                outline=color,
+            )
+            # Windows (2x2 grid)
+            win_size = self._s(2)
+            for row in range(2):
+                for col in range(2):
+                    wx = x + self._s(5) + col * self._s(4)
+                    wy = y + self._s(5) + row * self._s(4)
+                    draw.rectangle((wx, wy, wx + win_size, wy + win_size), fill=color)
+
+        elif icon == "lock":
+            # Padlock (locked)
+            cx = x + half
+            # Shackle (arc)
+            shackle_r = quarter
+            draw.arc(
+                (cx - shackle_r, y + self._s(2), cx + shackle_r, y + self._s(2) + shackle_r * 2),
+                start=180,
+                end=0,
+                fill=color,
+                width=self._s(2),
+            )
+            # Lock body
+            draw.rectangle(
+                (x + self._s(3), y + half - self._s(1), x + s - self._s(3), y + s - self._s(2)),
+                fill=color,
+            )
+
+        elif icon == "unlock":
+            # Padlock (unlocked)
+            cx = x + half
+            # Shackle (open arc)
+            shackle_r = quarter
+            draw.arc(
+                (cx - shackle_r, y + self._s(1), cx + shackle_r, y + self._s(1) + shackle_r * 2),
+                start=180,
+                end=270,
+                fill=color,
+                width=self._s(2),
+            )
+            # Lock body
+            draw.rectangle(
+                (x + self._s(3), y + half, x + s - self._s(3), y + s - self._s(2)),
+                fill=color,
+            )
+
+        elif icon == "motion":
+            # Motion detection waves
+            cx = x + half
+            for r in [quarter, half - self._s(1), half + self._s(2)]:
+                draw.arc(
+                    (cx - r, y + half - r, cx + r, y + half + r),
+                    start=300,
+                    end=60,
+                    fill=color,
+                    width=self._s(1),
+                )
+
+        # Weather
+        elif icon == "cloud":
+            # Cloud shape (overlapping circles)
+            # Bottom large circle
+            r1 = quarter + self._s(1)
+            draw.ellipse(
+                (
+                    x + self._s(2),
+                    y + half - self._s(1),
+                    x + self._s(2) + r1 * 2,
+                    y + s - self._s(2),
+                ),
+                fill=color,
+            )
+            # Top circle
+            r2 = quarter
+            draw.ellipse(
+                (x + quarter, y + self._s(3), x + quarter + r2 * 2, y + half + self._s(2)),
+                fill=color,
+            )
+            # Right circle
+            draw.ellipse(
+                (x + half, y + quarter, x + s - self._s(2), y + s - self._s(3)),
+                fill=color,
+            )
+
+        elif icon == "rain":
+            # Cloud with rain drops
+            # Smaller cloud at top
+            r = self._s(3)
+            draw.ellipse(
+                (x + self._s(2), y + self._s(2), x + self._s(2) + r * 2, y + half - self._s(1)),
+                fill=color,
+            )
+            draw.ellipse(
+                (x + quarter, y + self._s(1), x + half + self._s(1), y + half - self._s(2)),
+                fill=color,
+            )
+            draw.ellipse(
+                (x + half - self._s(2), y + self._s(2), x + s - self._s(2), y + half - self._s(1)),
+                fill=color,
+            )
+            # Rain drops
+            for i in range(3):
+                dx = x + self._s(4) + i * self._s(4)
+                draw.line(
+                    [(dx, y + half + self._s(1)), (dx - self._s(1), y + s - self._s(2))],
+                    fill=color,
+                    width=self._s(1),
+                )
+
+        elif icon == "moon":
+            # Crescent moon
+            cx, cy = x + half, y + half
+            r = half - self._s(2)
+            # Full circle
+            draw.ellipse((cx - r, cy - r, cx + r, cy + r), fill=color)
+            # Cut out with black circle offset to the right
+            cut_r = r - self._s(2)
+            draw.ellipse(
+                (
+                    cx - cut_r + self._s(4),
+                    cy - cut_r - self._s(1),
+                    cx + cut_r + self._s(4),
+                    cy + cut_r - self._s(1),
+                ),
+                fill=COLOR_BLACK,
+            )
+
+        elif icon == "wind":
+            # Wind lines (wavy)
+            for i, length in enumerate([s - self._s(4), s - self._s(6), s - self._s(8)]):
+                ly = y + self._s(4) + i * self._s(4)
+                draw.line(
+                    [(x + self._s(2), ly), (x + self._s(2) + length, ly)],
+                    fill=color,
+                    width=self._s(1),
+                )
+                # Small curve at end
+                draw.arc(
+                    (
+                        x + length - self._s(2),
+                        ly - self._s(2),
+                        x + length + self._s(2),
+                        ly + self._s(2),
+                    ),
+                    start=270,
+                    end=90,
+                    fill=color,
+                    width=self._s(1),
+                )
+
+        elif icon == "battery":
+            # Battery icon
+            # Main body
+            draw.rectangle(
+                (x + self._s(1), y + self._s(3), x + s - self._s(3), y + s - self._s(3)),
+                outline=color,
+            )
+            # Positive terminal
+            draw.rectangle(
+                (
+                    x + s - self._s(3),
+                    y + half - self._s(2),
+                    x + s - self._s(1),
+                    y + half + self._s(2),
+                ),
+                fill=color,
+            )
+
+        elif icon == "bell":
+            # Bell/notification icon
+            cx = x + half
+            # Bell body (arc)
+            r = half - self._s(2)
+            draw.arc(
+                (cx - r, y + self._s(2), cx + r, y + self._s(2) + r * 2),
+                start=180,
+                end=0,
+                fill=color,
+                width=self._s(2),
+            )
+            # Bell sides
+            draw.line(
+                [(cx - r, y + self._s(2) + r), (cx - r - self._s(1), y + s - self._s(4))],
+                fill=color,
+                width=self._s(2),
+            )
+            draw.line(
+                [(cx + r, y + self._s(2) + r), (cx + r + self._s(1), y + s - self._s(4))],
+                fill=color,
+                width=self._s(2),
+            )
+            # Bell bottom
+            draw.line(
+                [(x + self._s(1), y + s - self._s(4)), (x + s - self._s(1), y + s - self._s(4))],
+                fill=color,
+                width=self._s(2),
+            )
+            # Clapper
+            draw.ellipse(
+                (cx - self._s(1), y + s - self._s(3), cx + self._s(1), y + s - self._s(1)),
+                fill=color,
+            )
+
+        elif icon == "lightbulb":
+            # Light bulb
+            cx = x + half
+            r = quarter + self._s(1)
+            # Bulb (circle)
+            draw.ellipse(
+                (cx - r, y + self._s(2), cx + r, y + self._s(2) + r * 2),
+                outline=color,
+                width=self._s(2),
+            )
+            # Base
+            draw.rectangle(
+                (cx - self._s(3), y + half + self._s(2), cx + self._s(3), y + s - self._s(2)),
                 fill=color,
             )
 
