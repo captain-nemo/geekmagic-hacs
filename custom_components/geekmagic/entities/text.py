@@ -17,7 +17,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
+from ..const import (
     CONF_LAYOUT,
     CONF_SCREENS,
     CONF_WIDGETS,
@@ -30,7 +30,7 @@ from .entity import GeekMagicEntity
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
-    from .coordinator import GeekMagicCoordinator
+    from ..coordinator import GeekMagicCoordinator
 
 
 @dataclass(frozen=True, kw_only=True)

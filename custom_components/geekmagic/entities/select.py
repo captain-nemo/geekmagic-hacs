@@ -10,7 +10,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
+from ..const import (
     CONF_LAYOUT,
     CONF_SCREENS,
     CONF_WIDGETS,
@@ -28,7 +28,7 @@ from .entity import GeekMagicEntity
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
-    from .coordinator import GeekMagicCoordinator
+    from ..coordinator import GeekMagicCoordinator
 
 LAYOUT_OPTIONS = {
     LAYOUT_GRID_2X2: "Grid 2x2 (4 slots)",
@@ -244,7 +244,7 @@ class GeekMagicScreenTemplateSelect(GeekMagicSelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Apply a template to the screen."""
-        from .templates import apply_template
+        from ..templates import apply_template
 
         screen_idx = self.entity_description.screen_index
         if screen_idx is None:

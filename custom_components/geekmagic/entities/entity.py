@@ -10,12 +10,12 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from ..const import DOMAIN
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
-    from .coordinator import GeekMagicCoordinator
+    from ..coordinator import GeekMagicCoordinator
 
 
 @dataclass(frozen=True, kw_only=True)

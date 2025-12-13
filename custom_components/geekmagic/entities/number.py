@@ -14,7 +14,7 @@ from homeassistant.const import EntityCategory, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
+from ..const import (
     CONF_REFRESH_INTERVAL,
     CONF_SCREEN_CYCLE_INTERVAL,
     CONF_SCREENS,
@@ -27,7 +27,7 @@ from .entity import GeekMagicEntity
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
-    from .coordinator import GeekMagicCoordinator
+    from ..coordinator import GeekMagicCoordinator
 
 
 @dataclass(frozen=True, kw_only=True)

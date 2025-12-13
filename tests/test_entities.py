@@ -87,7 +87,7 @@ class TestEntityBase:
         """Test entity unique_id generation."""
         from homeassistant.const import CONF_HOST
 
-        from custom_components.geekmagic.entity import GeekMagicEntity
+        from custom_components.geekmagic.entities.entity import GeekMagicEntity
 
         mock_coordinator.config_entry = entity_entry
 
@@ -103,7 +103,7 @@ class TestEntityBase:
         """Test entity device_info property."""
         from homeassistant.const import CONF_HOST
 
-        from custom_components.geekmagic.entity import GeekMagicEntity
+        from custom_components.geekmagic.entities.entity import GeekMagicEntity
 
         mock_coordinator.config_entry = entity_entry
 
@@ -125,7 +125,7 @@ class TestNumberEntities:
 
     def test_number_entity_descriptions(self):
         """Test number entity descriptions are defined correctly."""
-        from custom_components.geekmagic.number import DEVICE_NUMBERS
+        from custom_components.geekmagic.entities.number import DEVICE_NUMBERS
 
         assert len(DEVICE_NUMBERS) == 4
         keys = [d.key for d in DEVICE_NUMBERS]
@@ -136,7 +136,7 @@ class TestNumberEntities:
 
     def test_brightness_entity(self, mock_coordinator, entity_entry):
         """Test brightness number entity."""
-        from custom_components.geekmagic.number import (
+        from custom_components.geekmagic.entities.number import (
             DEVICE_NUMBERS,
             GeekMagicNumberEntity,
         )
@@ -151,7 +151,7 @@ class TestNumberEntities:
 
     def test_screen_count_entity(self, mock_coordinator, entity_entry):
         """Test screen_count number entity."""
-        from custom_components.geekmagic.number import (
+        from custom_components.geekmagic.entities.number import (
             DEVICE_NUMBERS,
             GeekMagicNumberEntity,
         )
@@ -168,7 +168,7 @@ class TestButtonEntities:
 
     def test_button_entity_descriptions(self):
         """Test button entity descriptions are defined correctly."""
-        from custom_components.geekmagic.button import DEVICE_BUTTONS
+        from custom_components.geekmagic.entities.button import DEVICE_BUTTONS
 
         assert len(DEVICE_BUTTONS) == 3
         keys = [d.key for d in DEVICE_BUTTONS]
@@ -179,7 +179,7 @@ class TestButtonEntities:
     @pytest.mark.asyncio
     async def test_refresh_button_press(self, mock_coordinator, entity_entry):
         """Test refresh button triggers coordinator refresh."""
-        from custom_components.geekmagic.button import (
+        from custom_components.geekmagic.entities.button import (
             DEVICE_BUTTONS,
             GeekMagicButtonEntity,
         )
@@ -196,7 +196,7 @@ class TestButtonEntities:
     @pytest.mark.asyncio
     async def test_next_screen_button_press(self, mock_coordinator, entity_entry):
         """Test next screen button calls coordinator."""
-        from custom_components.geekmagic.button import (
+        from custom_components.geekmagic.entities.button import (
             DEVICE_BUTTONS,
             GeekMagicButtonEntity,
         )
@@ -215,7 +215,7 @@ class TestSensorEntities:
 
     def test_sensor_entity_descriptions(self):
         """Test sensor entity descriptions are defined correctly."""
-        from custom_components.geekmagic.sensor import DEVICE_SENSORS
+        from custom_components.geekmagic.entities.sensor import DEVICE_SENSORS
 
         assert len(DEVICE_SENSORS) == 3
         keys = [d.key for d in DEVICE_SENSORS]
@@ -225,7 +225,7 @@ class TestSensorEntities:
 
     def test_status_sensor_connected(self, mock_coordinator, entity_entry):
         """Test status sensor shows connected."""
-        from custom_components.geekmagic.sensor import (
+        from custom_components.geekmagic.entities.sensor import (
             DEVICE_SENSORS,
             GeekMagicSensorEntity,
         )
@@ -238,7 +238,7 @@ class TestSensorEntities:
 
     def test_status_sensor_disconnected(self, mock_coordinator, entity_entry):
         """Test status sensor shows disconnected when update fails."""
-        from custom_components.geekmagic.sensor import (
+        from custom_components.geekmagic.entities.sensor import (
             DEVICE_SENSORS,
             GeekMagicSensorEntity,
         )
@@ -252,7 +252,7 @@ class TestSensorEntities:
 
     def test_current_screen_name_sensor(self, mock_coordinator, entity_entry):
         """Test current screen name sensor."""
-        from custom_components.geekmagic.sensor import (
+        from custom_components.geekmagic.entities.sensor import (
             DEVICE_SENSORS,
             GeekMagicSensorEntity,
         )
@@ -269,7 +269,7 @@ class TestSelectEntities:
 
     def test_layout_options_defined(self):
         """Test layout options are defined."""
-        from custom_components.geekmagic.select import LAYOUT_OPTIONS
+        from custom_components.geekmagic.entities.select import LAYOUT_OPTIONS
 
         assert "grid_2x2" in LAYOUT_OPTIONS
         assert "hero" in LAYOUT_OPTIONS
@@ -277,7 +277,7 @@ class TestSelectEntities:
 
     def test_widget_options_defined(self):
         """Test widget options are defined."""
-        from custom_components.geekmagic.select import WIDGET_OPTIONS
+        from custom_components.geekmagic.entities.select import WIDGET_OPTIONS
 
         assert "empty" in WIDGET_OPTIONS
         assert "clock" in WIDGET_OPTIONS
@@ -285,7 +285,7 @@ class TestSelectEntities:
 
     def test_template_options_defined(self):
         """Test template options are defined."""
-        from custom_components.geekmagic.select import TEMPLATE_OPTIONS
+        from custom_components.geekmagic.entities.select import TEMPLATE_OPTIONS
 
         assert "custom" in TEMPLATE_OPTIONS
         assert "weather" in TEMPLATE_OPTIONS
@@ -297,7 +297,7 @@ class TestSwitchEntities:
 
     def test_widget_boolean_options_defined(self):
         """Test widget boolean options are defined."""
-        from custom_components.geekmagic.switch import WIDGET_BOOLEAN_OPTIONS
+        from custom_components.geekmagic.entities.switch import WIDGET_BOOLEAN_OPTIONS
 
         assert "clock" in WIDGET_BOOLEAN_OPTIONS
         assert "entity" in WIDGET_BOOLEAN_OPTIONS
@@ -321,7 +321,7 @@ class TestTextEntities:
 
     def test_screen_name_text_entity(self, mock_coordinator, entity_entry):
         """Test screen name text entity returns correct value."""
-        from custom_components.geekmagic.text import (
+        from custom_components.geekmagic.entities.text import (
             GeekMagicScreenNameText,
             GeekMagicTextEntityDescription,
         )
@@ -339,7 +339,7 @@ class TestTextEntities:
 
     def test_slot_label_text_entity(self, mock_coordinator, entity_entry):
         """Test slot label text entity returns correct value."""
-        from custom_components.geekmagic.text import (
+        from custom_components.geekmagic.entities.text import (
             GeekMagicSlotLabelText,
             GeekMagicTextEntityDescription,
         )
@@ -445,7 +445,7 @@ class TestEntityDynamicCreation:
         """Test select entities are created for each screen."""
         from typing import Any
 
-        from custom_components.geekmagic.select import async_setup_entry
+        from custom_components.geekmagic.entities.select import async_setup_entry
 
         entity_entry.add_to_hass(hass)
         mock_coordinator.config_entry = entity_entry
@@ -474,7 +474,7 @@ class TestEntityDynamicCreation:
         """Test text entities are created for each screen and slot."""
         from typing import Any
 
-        from custom_components.geekmagic.text import async_setup_entry
+        from custom_components.geekmagic.entities.text import async_setup_entry
 
         entity_entry.add_to_hass(hass)
         mock_coordinator.config_entry = entity_entry
