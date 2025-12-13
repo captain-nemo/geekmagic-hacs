@@ -10,7 +10,6 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import callback
-from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
@@ -23,12 +22,6 @@ from .const import (
     DEFAULT_SCREEN_CYCLE_INTERVAL,
     DOMAIN,
     LAYOUT_GRID_2X2,
-    LAYOUT_GRID_2X3,
-    LAYOUT_HERO,
-    LAYOUT_SLOT_COUNTS,
-    LAYOUT_SPLIT,
-    LAYOUT_THREE_COLUMN,
-    WIDGET_TYPE_NAMES,
 )
 from .device import GeekMagicDevice
 
@@ -41,22 +34,18 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
-LAYOUT_OPTIONS = {
-    LAYOUT_GRID_2X2: "Grid 2x2 (4 slots)",
-    LAYOUT_GRID_2X3: "Grid 2x3 (6 slots)",
-    LAYOUT_HERO: "Hero (4 slots)",
-    LAYOUT_SPLIT: "Split (2 slots)",
-    LAYOUT_THREE_COLUMN: "Three Column (3 slots)",
-}
-
 
 class GeekMagicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for GeekMagic."""
+    """Handle a config flow for GeekMagic.
+
+    This flow handles initial device setup only.
+    All screen/widget configuration is done through entities (WLED-style).
+    """
 
     VERSION = 1
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Handle the initial step."""
+        """Handle the initial step - device connection."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -73,9 +62,12 @@ class GeekMagicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             if await device.test_connection():
                 _LOGGER.info("Config flow: successfully connected to %s", host)
+
+                # Create entry with default options
                 return self.async_create_entry(
                     title=user_input.get(CONF_NAME, f"GeekMagic ({host})"),
                     data=user_input,
+                    options=self._get_default_options(),
                 )
             _LOGGER.warning("Config flow: failed to connect to %s", host)
             errors["base"] = "cannot_connect"
@@ -86,68 +78,43 @@ class GeekMagicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    def _get_default_options(self) -> dict[str, Any]:
+        """Get default options for a new device."""
+        return {
+            CONF_REFRESH_INTERVAL: DEFAULT_REFRESH_INTERVAL,
+            CONF_SCREEN_CYCLE_INTERVAL: DEFAULT_SCREEN_CYCLE_INTERVAL,
+            CONF_SCREENS: [
+                {
+                    "name": "Screen 1",
+                    CONF_LAYOUT: LAYOUT_GRID_2X2,
+                    CONF_WIDGETS: [{"type": "clock", "slot": 0}],
+                }
+            ],
+        }
+
     @staticmethod
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> GeekMagicOptionsFlow:
         """Get the options flow for this handler."""
-        # Note: config_entry is passed by HA but the framework sets
-        # self.config_entry automatically on the flow before any step runs
         return GeekMagicOptionsFlow()
 
 
 class GeekMagicOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow for GeekMagic."""
+    """Handle options flow for GeekMagic.
 
-    # Note: self.config_entry is a read-only property set by the OptionsFlow base class.
-    # The framework sets it automatically before calling any step methods.
-    # We do NOT set it in __init__ as that would fail with:
-    # AttributeError: property 'config_entry' of 'OptionsFlow' object has no setter
-
-    def __init__(self) -> None:
-        """Initialize options flow."""
-        self._options: dict[str, Any] = {}
-        self._current_screen_index: int = 0
-        self._screen_config: dict[str, Any] = {}
-        self._widget_types: dict[int, str] = {}  # slot -> widget type
-        self._editing_screen: bool = False
-
-    def _migrate_options(self, options: dict[str, Any]) -> dict[str, Any]:
-        """Migrate old options format to new multi-screen format."""
-        if CONF_SCREENS in options:
-            return dict(options)
-
-        return {
-            CONF_REFRESH_INTERVAL: options.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL),
-            CONF_SCREEN_CYCLE_INTERVAL: options.get(
-                CONF_SCREEN_CYCLE_INTERVAL, DEFAULT_SCREEN_CYCLE_INTERVAL
-            ),
-            CONF_SCREENS: [
-                {
-                    "name": "Screen 1",
-                    CONF_LAYOUT: options.get(CONF_LAYOUT, LAYOUT_GRID_2X2),
-                    CONF_WIDGETS: options.get(CONF_WIDGETS, [{"type": "clock", "slot": 0}]),
-                }
-            ],
-        }
+    Note: Most configuration is done through entities now (WLED-style).
+    This options flow is kept minimal for advanced users who want to
+    reset to defaults or import/export configurations.
+    """
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Main menu for options."""
-        # Initialize options from current config
-        self._options = self._migrate_options(dict(self.config_entry.options))
-        _LOGGER.debug(
-            "Options flow: initialized with %d screens",
-            len(self._options.get(CONF_SCREENS, [])),
-        )
-
+        """Show options menu."""
         if user_input is not None:
             action = user_input.get("action")
-            _LOGGER.debug("Options flow: user selected action '%s'", action)
-            if action == "device_settings":
-                return await self.async_step_device_settings()
-            if action == "manage_screens":
-                return await self.async_step_manage_screens()
+            if action == "reset_defaults":
+                return await self.async_step_reset_defaults()
 
         return self.async_show_form(
             step_id="init",
@@ -155,525 +122,48 @@ class GeekMagicOptionsFlow(config_entries.OptionsFlow):
                 {
                     vol.Required("action"): vol.In(
                         {
-                            "device_settings": "Device Settings",
-                            "manage_screens": "Manage Screens",
+                            "reset_defaults": "Reset to Default Configuration",
                         }
                     )
                 }
             ),
+            description_placeholders={
+                "tip": "Tip: Configure your display using the device entities "
+                "(brightness, screens, widgets, etc.) on the device page."
+            },
         )
 
-    async def async_step_device_settings(
+    async def async_step_reset_defaults(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Configure device-specific settings."""
-        if user_input is not None:
-            self._options[CONF_REFRESH_INTERVAL] = user_input[CONF_REFRESH_INTERVAL]
-            self._options[CONF_SCREEN_CYCLE_INTERVAL] = user_input[CONF_SCREEN_CYCLE_INTERVAL]
-            return self.async_create_entry(title="", data=self._options)
-
-        return self.async_show_form(
-            step_id="device_settings",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_REFRESH_INTERVAL,
-                        default=self._options.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=5, max=300)),
-                    vol.Required(
-                        CONF_SCREEN_CYCLE_INTERVAL,
-                        default=self._options.get(
-                            CONF_SCREEN_CYCLE_INTERVAL, DEFAULT_SCREEN_CYCLE_INTERVAL
-                        ),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=0, max=300)),
-                }
-            ),
-        )
-
-    async def async_step_manage_screens(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Manage screens menu."""
-        screens = self._options.get(CONF_SCREENS, [])
-
-        if user_input is not None:
-            action = user_input.get("action")
-            if action == "add":
-                self._editing_screen = False
-                return await self.async_step_add_screen()
-            if action == "done":
-                return self.async_create_entry(title="", data=self._options)
-            if action and action.startswith("edit_"):
-                self._current_screen_index = int(action.split("_")[1])
-                self._editing_screen = True
-                return await self.async_step_edit_screen()
-            if action and action.startswith("delete_"):
-                self._current_screen_index = int(action.split("_")[1])
-                return await self.async_step_delete_screen()
-
-        # Build action choices
-        actions = {"add": "+ Add New Screen"}
-        for i, screen in enumerate(screens):
-            name = screen.get("name", f"Screen {i + 1}")
-            layout = screen.get(CONF_LAYOUT, LAYOUT_GRID_2X2)
-            slot_count = LAYOUT_SLOT_COUNTS.get(layout, 4)
-            widget_count = len(screen.get(CONF_WIDGETS, []))
-            layout_name = LAYOUT_OPTIONS.get(layout, layout)
-            actions[f"edit_{i}"] = f"{name} ({layout_name}, {widget_count}/{slot_count})"
-        for i, screen in enumerate(screens):
-            if len(screens) > 1:  # Can't delete if only one screen
-                name = screen.get("name", f"Screen {i + 1}")
-                actions[f"delete_{i}"] = f"Delete: {name}"
-        actions["done"] = "Save and Exit"
-
-        return self.async_show_form(
-            step_id="manage_screens",
-            data_schema=vol.Schema({vol.Required("action"): vol.In(actions)}),
-        )
-
-    async def async_step_add_screen(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Add a new screen with all widget types in one form."""
-        if user_input is not None:
-            layout = user_input[CONF_LAYOUT]
-            slot_count = LAYOUT_SLOT_COUNTS.get(layout, 4)
-
-            self._screen_config = {
-                "name": user_input["name"],
-                CONF_LAYOUT: layout,
-                CONF_WIDGETS: [],
-            }
-
-            # Collect widget types for non-empty slots
-            self._widget_types = {}
-            for i in range(slot_count):
-                widget_type = user_input.get(f"slot_{i}_type", "empty")
-                if widget_type != "empty":
-                    self._widget_types[i] = widget_type
-
-            # If any widgets selected, go to configure them
-            if self._widget_types:
-                return await self.async_step_configure_widgets()
-            # Otherwise finish with empty screen
-            return await self._finish_screen_config()
-
-        screen_count = len(self._options.get(CONF_SCREENS, []))
-
-        # Build schema with name, layout, and all slot type selectors
-        widget_options = {"empty": "Empty (skip)"}
-        widget_options.update(WIDGET_TYPE_NAMES)
-
-        # Use max slot count (6 for largest layout)
-        max_slots = max(LAYOUT_SLOT_COUNTS.values())
-        schema: dict[Any, Any] = {
-            vol.Required("name", default=f"Screen {screen_count + 1}"): str,
-            vol.Required(CONF_LAYOUT, default=LAYOUT_GRID_2X2): vol.In(LAYOUT_OPTIONS),
-        }
-        for i in range(max_slots):
-            schema[vol.Optional(f"slot_{i}_type", default="empty")] = vol.In(widget_options)
-
-        return self.async_show_form(
-            step_id="add_screen",
-            data_schema=vol.Schema(schema),
-        )
-
-    async def async_step_edit_screen(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Edit existing screen with all widget types in one form."""
-        screens = self._options.get(CONF_SCREENS, [])
-        screen = screens[self._current_screen_index]
-        old_widgets = screen.get(CONF_WIDGETS, [])
-
-        if user_input is not None:
-            layout = user_input[CONF_LAYOUT]
-            slot_count = LAYOUT_SLOT_COUNTS.get(layout, 4)
-
-            self._screen_config = {
-                "name": user_input["name"],
-                CONF_LAYOUT: layout,
-                CONF_WIDGETS: [],
-            }
-
-            # Collect widget types for non-empty slots
-            self._widget_types = {}
-            for i in range(slot_count):
-                widget_type = user_input.get(f"slot_{i}_type", "empty")
-                if widget_type != "empty":
-                    self._widget_types[i] = widget_type
-
-            # If any widgets selected, go to configure them
-            if self._widget_types:
-                # Preserve existing widget configs for matching slots/types
-                self._existing_widgets = {
-                    w.get("slot"): w for w in old_widgets if w.get("slot") is not None
-                }
-                return await self.async_step_configure_widgets()
-            # Otherwise finish with empty screen
-            return await self._finish_screen_config()
-
-        # Build schema with current values as defaults
-        widget_options = {"empty": "Empty (skip)"}
-        widget_options.update(WIDGET_TYPE_NAMES)
-
-        # Create slot -> widget type mapping from existing config
-        existing_types = {w.get("slot"): w.get("type") for w in old_widgets}
-
-        max_slots = max(LAYOUT_SLOT_COUNTS.values())
-        schema: dict[Any, Any] = {
-            vol.Required("name", default=screen.get("name", "")): str,
-            vol.Required(CONF_LAYOUT, default=screen.get(CONF_LAYOUT, LAYOUT_GRID_2X2)): vol.In(
-                LAYOUT_OPTIONS
-            ),
-        }
-        for i in range(max_slots):
-            default_type = existing_types.get(i, "empty")
-            schema[vol.Optional(f"slot_{i}_type", default=default_type)] = vol.In(widget_options)
-
-        return self.async_show_form(
-            step_id="edit_screen",
-            data_schema=vol.Schema(schema),
-        )
-
-    async def async_step_configure_widgets(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Configure all widgets in one form."""
-        if user_input is not None:
-            # Extract widget configs from prefixed form fields
-            for slot, widget_type in self._widget_types.items():
-                widget_config = self._extract_widget_config(slot, widget_type, user_input)
-                self._screen_config[CONF_WIDGETS].append(widget_config)
-            return await self._finish_screen_config()
-
-        # Build schema with all widget options, prefixed by slot number
-        schema: dict[Any, Any] = {}
-        existing_widgets = getattr(self, "_existing_widgets", {})
-
-        for slot in sorted(self._widget_types.keys()):
-            widget_type = self._widget_types[slot]
-            # Get existing config if same widget type was in this slot
-            existing = existing_widgets.get(slot)
-            if existing and existing.get("type") != widget_type:
-                existing = None  # Different type, don't use old config
-            slot_schema = self._get_widget_schema_prefixed(slot, widget_type, existing)
-            schema.update(slot_schema)
-
-        return self.async_show_form(
-            step_id="configure_widgets",
-            data_schema=vol.Schema(schema),
-        )
-
-    def _get_widget_schema_prefixed(
-        self, slot: int, widget_type: str, existing: dict[str, Any] | None = None
-    ) -> dict:
-        """Get widget schema with slot-prefixed field names."""
-        base_schema = self._get_widget_schema(widget_type, existing)
-        prefixed: dict[Any, Any] = {}
-
-        for key, validator in base_schema.items():
-            # Extract field name and required/optional status from voluptuous key
-            if isinstance(key, vol.Required):
-                field_name = key.schema
-                default = key.default if key.default is not vol.UNDEFINED else None
-                new_key = vol.Required(
-                    f"slot_{slot}_{field_name}",
-                    default=default,
-                    description=key.description,
-                )
-            elif isinstance(key, vol.Optional):
-                field_name = key.schema
-                default = key.default if key.default is not vol.UNDEFINED else None
-                new_key = vol.Optional(
-                    f"slot_{slot}_{field_name}",
-                    default=default,
-                    description=key.description,
-                )
-            else:
-                # Plain string key (shouldn't happen but handle it)
-                new_key = f"slot_{slot}_{key}"
-
-            prefixed[new_key] = validator
-
-        return prefixed
-
-    def _extract_widget_config(
-        self, slot: int, widget_type: str, user_input: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Extract widget config from prefixed form fields."""
-        prefix = f"slot_{slot}_"
-        config: dict[str, Any] = {"type": widget_type, "slot": slot}
-        options: dict[str, Any] = {}
-
-        for key, value in user_input.items():
-            if key.startswith(prefix):
-                field = key[len(prefix) :]
-                if field == "entity_id":
-                    if value:  # Only add if not empty
-                        config["entity_id"] = value
-                elif field == "label":
-                    if value:  # Only add if not empty
-                        config["label"] = value
-                else:
-                    # Handle special fields for multi_progress and status_list
-                    options[field] = value
-
-        # Convert numbered fields for multi_progress/status_list
-        if widget_type == "multi_progress":
-            items = []
-            for i in range(1, 4):
-                entity_id = options.pop(f"entity_id_{i}", "")
-                label = options.pop(f"label_{i}", "")
-                target = options.pop(f"target_{i}", 100)
-                if entity_id:
-                    items.append({"entity_id": entity_id, "label": label, "target": target})
-            if items:
-                options["items"] = items
-
-        elif widget_type == "status_list":
-            entities = []
-            for i in range(1, 5):
-                entity_id = options.pop(f"entity_id_{i}", "")
-                label = options.pop(f"label_{i}", "")
-                if entity_id:
-                    entities.append([entity_id, label] if label else entity_id)
-            if entities:
-                options["entities"] = entities
-
-        if options:
-            config["options"] = options
-
-        return config
-
-    def _get_widget_schema(  # noqa: PLR0911
-        self, widget_type: str, existing: dict[str, Any] | None = None
-    ) -> dict:
-        """Get voluptuous schema for widget type."""
-        existing = existing or {}
-        options = existing.get("options", {})
-
-        if widget_type == "camera":
-            return {
-                vol.Required(
-                    "entity_id", default=existing.get("entity_id", "")
-                ): selector.EntitySelector(selector.EntitySelectorConfig(domain="camera")),
-                vol.Optional("label", default=existing.get("label", "")): str,
-                vol.Optional("show_label", default=options.get("show_label", False)): bool,
-                vol.Optional("fit", default=options.get("fit", "contain")): vol.In(
-                    {
-                        "contain": "Contain (preserve aspect)",
-                        "cover": "Cover (fill area)",
-                    }
-                ),
-            }
-        if widget_type == "clock":
-            return {
-                vol.Optional("label", default=existing.get("label", "")): str,
-                vol.Optional("show_date", default=options.get("show_date", True)): bool,
-                vol.Optional("show_seconds", default=options.get("show_seconds", False)): bool,
-                vol.Optional("time_format", default=options.get("time_format", "24h")): vol.In(
-                    {
-                        "24h": "24 Hour",
-                        "12h": "12 Hour",
-                    }
-                ),
-            }
-        if widget_type == "entity":
-            return {
-                vol.Required(
-                    "entity_id", default=existing.get("entity_id", "")
-                ): selector.EntitySelector(),
-                vol.Optional("label", default=existing.get("label", "")): str,
-                vol.Optional("show_name", default=options.get("show_name", True)): bool,
-                vol.Optional("show_unit", default=options.get("show_unit", True)): bool,
-            }
-        if widget_type == "media":
-            return {
-                vol.Required(
-                    "entity_id", default=existing.get("entity_id", "")
-                ): selector.EntitySelector(selector.EntitySelectorConfig(domain="media_player")),
-                vol.Optional("show_artist", default=options.get("show_artist", True)): bool,
-                vol.Optional("show_album", default=options.get("show_album", False)): bool,
-                vol.Optional("show_progress", default=options.get("show_progress", True)): bool,
-            }
-        if widget_type == "chart":
-            return {
-                vol.Required(
-                    "entity_id", default=existing.get("entity_id", "")
-                ): selector.EntitySelector(),
-                vol.Optional("label", default=existing.get("label", "")): str,
-                vol.Optional("hours", default=options.get("hours", 24)): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=168)
-                ),
-                vol.Optional("show_value", default=options.get("show_value", True)): bool,
-                vol.Optional("show_range", default=options.get("show_range", True)): bool,
-            }
-        if widget_type == "text":
-            return {
-                vol.Optional("text", default=options.get("text", "")): str,
-                vol.Optional(
-                    "entity_id", default=existing.get("entity_id", "")
-                ): selector.EntitySelector(),
-                vol.Optional("label", default=existing.get("label", "")): str,
-                vol.Optional("size", default=options.get("size", "regular")): vol.In(
-                    {
-                        "small": "Small",
-                        "regular": "Regular",
-                        "large": "Large",
-                        "xlarge": "Extra Large",
-                    }
-                ),
-                vol.Optional("align", default=options.get("align", "center")): vol.In(
-                    {
-                        "left": "Left",
-                        "center": "Center",
-                        "right": "Right",
-                    }
-                ),
-            }
-        if widget_type == "gauge":
-            return {
-                vol.Required(
-                    "entity_id", default=existing.get("entity_id", "")
-                ): selector.EntitySelector(),
-                vol.Optional("label", default=existing.get("label", "")): str,
-                vol.Optional("style", default=options.get("style", "bar")): vol.In(
-                    {
-                        "bar": "Bar",
-                        "ring": "Ring",
-                        "arc": "Arc",
-                    }
-                ),
-                vol.Optional("min", default=options.get("min", 0)): vol.Coerce(float),
-                vol.Optional("max", default=options.get("max", 100)): vol.Coerce(float),
-                vol.Optional("unit", default=options.get("unit", "")): str,
-                vol.Optional("show_value", default=options.get("show_value", True)): bool,
-            }
-        if widget_type == "progress":
-            return {
-                vol.Required(
-                    "entity_id", default=existing.get("entity_id", "")
-                ): selector.EntitySelector(),
-                vol.Optional("label", default=existing.get("label", "")): str,
-                vol.Optional("target", default=options.get("target", 100)): vol.Coerce(float),
-                vol.Optional("unit", default=options.get("unit", "")): str,
-                vol.Optional("show_target", default=options.get("show_target", True)): bool,
-            }
-        if widget_type == "status":
-            return {
-                vol.Required(
-                    "entity_id", default=existing.get("entity_id", "")
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain=["binary_sensor", "switch", "light", "lock", "device_tracker"]
-                    )
-                ),
-                vol.Optional("label", default=existing.get("label", "")): str,
-                vol.Optional("on_text", default=options.get("on_text", "ON")): str,
-                vol.Optional("off_text", default=options.get("off_text", "OFF")): str,
-                vol.Optional(
-                    "show_status_text", default=options.get("show_status_text", True)
-                ): bool,
-            }
-        if widget_type == "weather":
-            return {
-                vol.Required(
-                    "entity_id", default=existing.get("entity_id", "")
-                ): selector.EntitySelector(selector.EntitySelectorConfig(domain="weather")),
-                vol.Optional("show_forecast", default=options.get("show_forecast", True)): bool,
-                vol.Optional("forecast_days", default=options.get("forecast_days", 3)): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=5)
-                ),
-                vol.Optional("show_humidity", default=options.get("show_humidity", True)): bool,
-                vol.Optional("show_wind", default=options.get("show_wind", False)): bool,
-            }
-        if widget_type == "multi_progress":
-            # For list-based widgets, we use a simplified approach
-            return {
-                vol.Optional("title", default=options.get("title", "")): str,
-                vol.Optional("entity_id_1", default=""): selector.EntitySelector(),
-                vol.Optional("label_1", default=""): str,
-                vol.Optional("target_1", default=100): vol.Coerce(float),
-                vol.Optional("entity_id_2", default=""): selector.EntitySelector(),
-                vol.Optional("label_2", default=""): str,
-                vol.Optional("target_2", default=100): vol.Coerce(float),
-                vol.Optional("entity_id_3", default=""): selector.EntitySelector(),
-                vol.Optional("label_3", default=""): str,
-                vol.Optional("target_3", default=100): vol.Coerce(float),
-            }
-        if widget_type == "status_list":
-            return {
-                vol.Optional("title", default=options.get("title", "")): str,
-                vol.Optional("entity_id_1", default=""): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain=["binary_sensor", "switch", "light", "lock", "device_tracker"]
-                    )
-                ),
-                vol.Optional("label_1", default=""): str,
-                vol.Optional("entity_id_2", default=""): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain=["binary_sensor", "switch", "light", "lock", "device_tracker"]
-                    )
-                ),
-                vol.Optional("label_2", default=""): str,
-                vol.Optional("entity_id_3", default=""): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain=["binary_sensor", "switch", "light", "lock", "device_tracker"]
-                    )
-                ),
-                vol.Optional("label_3", default=""): str,
-                vol.Optional("entity_id_4", default=""): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain=["binary_sensor", "switch", "light", "lock", "device_tracker"]
-                    )
-                ),
-                vol.Optional("label_4", default=""): str,
-            }
-        return {}
-
-    async def _finish_screen_config(self) -> ConfigFlowResult:
-        """Finish configuring a screen and save."""
-        screen_name = self._screen_config.get("name", "Unknown")
-        widget_count = len(self._screen_config.get(CONF_WIDGETS, []))
-        _LOGGER.debug(
-            "Options flow: finishing screen config '%s' with %d widgets",
-            screen_name,
-            widget_count,
-        )
-        screens = self._options.get(CONF_SCREENS, [])
-
-        if self._editing_screen and self._current_screen_index < len(screens):
-            # Editing existing screen
-            screens[self._current_screen_index] = self._screen_config
-        else:
-            # Adding new screen
-            screens.append(self._screen_config)
-
-        self._options[CONF_SCREENS] = screens
-        return await self.async_step_manage_screens()
-
-    async def async_step_delete_screen(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Confirm screen deletion."""
-        screens = self._options.get(CONF_SCREENS, [])
-        screen = screens[self._current_screen_index]
-
+        """Reset to default configuration."""
         if user_input is not None:
             if user_input.get("confirm"):
-                screens.pop(self._current_screen_index)
-                self._options[CONF_SCREENS] = screens
-            return await self.async_step_manage_screens()
+                # Reset to defaults
+                default_options = {
+                    CONF_REFRESH_INTERVAL: DEFAULT_REFRESH_INTERVAL,
+                    CONF_SCREEN_CYCLE_INTERVAL: DEFAULT_SCREEN_CYCLE_INTERVAL,
+                    CONF_SCREENS: [
+                        {
+                            "name": "Screen 1",
+                            CONF_LAYOUT: LAYOUT_GRID_2X2,
+                            CONF_WIDGETS: [{"type": "clock", "slot": 0}],
+                        }
+                    ],
+                }
+                return self.async_create_entry(title="", data=default_options)
+            # User cancelled
+            return await self.async_step_init()
 
         return self.async_show_form(
-            step_id="delete_screen",
+            step_id="reset_defaults",
             data_schema=vol.Schema(
                 {
                     vol.Required("confirm", default=False): bool,
                 }
             ),
             description_placeholders={
-                "screen_name": screen.get("name", f"Screen {self._current_screen_index + 1}"),
+                "warning": "This will reset all screens and widgets to defaults. "
+                "Your current configuration will be lost."
             },
         )
