@@ -105,6 +105,7 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
         self._last_update_time: float | None = None
         self.config_entry = config_entry
         self._camera_images: dict[str, bytes] = {}  # Pre-fetched camera images
+        self._update_preview: bool = True  # Update preview on next refresh
 
         # Get refresh interval from options
         interval = self.options.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL)
@@ -369,6 +370,9 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
         # Rebuild all screens
         self._setup_screens()
 
+        # Update preview on next refresh (config changed)
+        self._update_preview = True
+
     def _render_display(self) -> tuple[bytes, bytes]:
         """Render the display image (runs in executor thread).
 
@@ -436,7 +440,13 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
             # Render image in executor to avoid blocking the event loop
             # (Pillow image operations are CPU-intensive)
             jpeg_data, png_data = await self.hass.async_add_executor_job(self._render_display)
-            self._last_image = png_data
+
+            # Only update preview image on config changes or manual refresh
+            # (prevents HA UI from refreshing during periodic updates)
+            if self._update_preview:
+                self._last_image = png_data
+                self._update_preview = False
+
             _LOGGER.debug(
                 "Rendered image: JPEG=%d bytes, PNG=%d bytes",
                 len(jpeg_data),
@@ -515,6 +525,7 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
 
     async def async_refresh_display(self) -> None:
         """Force an immediate display refresh."""
+        self._update_preview = True  # Update preview on manual refresh
         await self.async_request_refresh()
 
     async def _async_fetch_camera_images(self) -> None:
