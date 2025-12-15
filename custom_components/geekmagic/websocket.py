@@ -7,12 +7,14 @@ from __future__ import annotations
 
 import base64
 import logging
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_REFRESH_INTERVAL,
@@ -624,6 +626,48 @@ async def ws_devices_settings(
 # =============================================================================
 
 
+def _fetch_entity_history(
+    hass: HomeAssistant, entity_id: str, start: datetime, end: datetime
+) -> list:
+    """Fetch history for an entity (sync, runs in executor).
+
+    Args:
+        hass: Home Assistant instance
+        entity_id: Entity ID to fetch history for
+        start: Start time (datetime)
+        end: End time (datetime)
+
+    Returns:
+        List of State objects for the entity
+    """
+    from homeassistant.components.recorder import history
+
+    result = history.state_changes_during_period(
+        hass,
+        start,
+        end,
+        entity_id,
+        include_start_time_state=True,
+        no_attributes=True,
+    )
+    return result.get(entity_id, [])
+
+
+def _extract_numeric_values(history_states: list) -> list[float]:
+    """Extract numeric values from recorder history states.
+
+    Args:
+        history_states: List of State objects or dicts from recorder
+
+    Returns:
+        List of numeric float values
+    """
+    # Import the shared function from coordinator
+    from .coordinator import extract_numeric_values
+
+    return extract_numeric_values(history_states)
+
+
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "geekmagic/preview/render",
@@ -641,7 +685,53 @@ async def ws_preview_render(
 
     # Import here to avoid circular imports
     from .coordinator import LAYOUT_CLASSES, WIDGET_CLASSES
+    from .widgets.chart import ChartWidget
     from .widgets.theme import get_theme
+
+    # Pre-fetch history for chart widgets
+    chart_history: dict[str, list[float]] = {}
+
+    try:
+        from homeassistant.components.recorder import get_instance
+
+        recorder = get_instance(hass)
+        now = dt_util.utcnow()
+
+        for widget_data in view_config.get("widgets", []):
+            if widget_data.get("type") == "chart":
+                entity_id = widget_data.get("entity_id")
+                if entity_id:
+                    # Get period from widget options (default 24 hours)
+                    options = widget_data.get("options", {})
+                    period = options.get("period", "24 hours")
+
+                    # Convert period to hours
+                    period_hours = {
+                        "5 min": 5 / 60,
+                        "15 min": 15 / 60,
+                        "1 hour": 1,
+                        "6 hours": 6,
+                        "24 hours": 24,
+                    }.get(period, 24)
+
+                    start_time = now - timedelta(hours=period_hours)
+
+                    # Fetch history in executor
+                    history_states = await recorder.async_add_executor_job(
+                        _fetch_entity_history,
+                        hass,
+                        entity_id,
+                        start_time,
+                        now,
+                    )
+
+                    if history_states:
+                        values = _extract_numeric_values(history_states)
+                        if values:
+                            chart_history[entity_id] = values
+    except (ImportError, KeyError):
+        # Recorder not available, charts will show no data
+        pass
 
     def _render() -> bytes:
         """Render the view (runs in executor)."""
@@ -684,6 +774,13 @@ async def ws_preview_render(
                 options=widget_data.get("options", {}),
             )
             widget = widget_class(config)
+
+            # Set history data for chart widgets
+            if widget_type == "chart" and isinstance(widget, ChartWidget):
+                entity_id = widget_data.get("entity_id")
+                if entity_id and entity_id in chart_history:
+                    widget.set_history(chart_history[entity_id])
+
             layout.set_widget(slot, widget)
 
         # Render

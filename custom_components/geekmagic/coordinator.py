@@ -767,13 +767,6 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
         """
         from homeassistant.components.recorder import history
 
-        _LOGGER.warning(
-            "CHART DEBUG: Fetching history for %s from %s to %s",
-            entity_id,
-            start,
-            end,
-        )
-
         # state_changes_during_period returns dict[entity_id, list[State]]
         # We need keyword arguments here since the function has many optional params
         result = history.state_changes_during_period(
@@ -784,13 +777,6 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
             include_start_time_state=True,
             no_attributes=True,
         )
-
-        _LOGGER.warning(
-            "CHART DEBUG: state_changes_during_period returned: keys=%s, entity_data_len=%d",
-            list(result.keys()) if result else "None",
-            len(result.get(entity_id, [])) if result else 0,
-        )
-
         return result.get(entity_id, [])
 
     async def _async_fetch_chart_history(self) -> None:
@@ -810,12 +796,6 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
                     if entity_id:
                         chart_widgets.append((entity_id, slot.widget))
 
-        _LOGGER.warning(
-            "CHART DEBUG: Found %d chart widgets on screen %d",
-            len(chart_widgets),
-            self._current_screen,
-        )
-
         if not chart_widgets:
             return
 
@@ -823,17 +803,15 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
         try:
             from homeassistant.components.recorder import get_instance
         except ImportError:
-            _LOGGER.warning("CHART DEBUG: Recorder module not available (ImportError)")
+            _LOGGER.debug("Recorder not available, charts will show no data")
             return
 
         # get_instance() raises KeyError if recorder not available
         try:
             recorder = get_instance(self.hass)
         except KeyError:
-            _LOGGER.warning("CHART DEBUG: Recorder instance not available (KeyError)")
+            _LOGGER.debug("Recorder instance not available")
             return
-
-        _LOGGER.warning("CHART DEBUG: Got recorder instance successfully")
 
         now = dt_util.utcnow()
 
@@ -852,34 +830,22 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
                     now,
                 )
 
-                _LOGGER.warning(
-                    "CHART DEBUG: history_states=%d for %s",
-                    len(history_states) if history_states else 0,
-                    entity_id,
-                )
-
                 if history_states:
                     values = extract_numeric_values(history_states)
 
-                    _LOGGER.warning(
-                        "CHART DEBUG: Extracted %d numeric values for %s",
-                        len(values) if values else 0,
-                        entity_id,
-                    )
-
                     if values:
                         widget.set_history(values)
-                        _LOGGER.warning(
-                            "CHART DEBUG: Set %d history points on widget for %s",
+                        _LOGGER.debug(
+                            "Fetched %d history points for %s",
                             len(values),
                             entity_id,
                         )
                     else:
-                        _LOGGER.warning(
-                            "CHART DEBUG: No numeric values extracted for %s",
+                        _LOGGER.debug(
+                            "No numeric values in history for %s",
                             entity_id,
                         )
                 else:
-                    _LOGGER.warning("CHART DEBUG: No history returned for %s", entity_id)
+                    _LOGGER.debug("No history returned for %s", entity_id)
             except Exception as e:
                 _LOGGER.warning("Failed to fetch history for %s: %s", entity_id, e)
