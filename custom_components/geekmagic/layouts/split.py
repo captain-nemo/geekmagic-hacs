@@ -184,3 +184,92 @@ class ThreeColumnLayout(Layout):
             )
 
             x += col_width + self.gap
+
+
+class ThreeRowLayout(Layout):
+    """Three row layout - stacked horizontally.
+
+    +---------------------+
+    |        TOP          |
+    |      (slot 0)       |
+    +---------------------+
+    |       MIDDLE        |
+    |      (slot 1)       |
+    +---------------------+
+    |       BOTTOM        |
+    |      (slot 2)       |
+    +---------------------+
+    """
+
+    def __init__(
+        self,
+        ratios: tuple[float, float, float] = (0.33, 0.34, 0.33),
+        padding: int = 8,
+        gap: int = 8,
+    ) -> None:
+        """Initialize three-row layout.
+
+        Args:
+            ratios: Height ratios for each row (should sum to ~1.0)
+            padding: Padding around edges
+            gap: Gap between rows
+        """
+        self.ratios = ratios
+        super().__init__(padding=padding, gap=gap)
+
+    def _calculate_slots(self) -> None:
+        """Calculate row rectangles."""
+        self.slots = []
+
+        available_height = self.height - (2 * self.padding) - (2 * self.gap)
+        total_ratio = sum(self.ratios)
+
+        y = self.padding
+        for i, ratio in enumerate(self.ratios):
+            row_height = int(available_height * (ratio / total_ratio))
+
+            self.slots.append(
+                Slot(
+                    index=i,
+                    rect=(
+                        self.padding,
+                        y,
+                        self.width - self.padding,
+                        y + row_height,
+                    ),
+                )
+            )
+
+            y += row_height + self.gap
+
+
+class SplitHorizontal1To2(SplitHorizontal):
+    """Horizontal split - narrow left (1/3), wide right (2/3).
+
+    +------+-------------+
+    |      |             |
+    | LEFT |    RIGHT    |
+    | 1/3  |     2/3     |
+    |      |             |
+    +------+-------------+
+    """
+
+    def __init__(self, padding: int = 8, gap: int = 8) -> None:
+        """Initialize 1:2 horizontal split."""
+        super().__init__(ratio=0.33, padding=padding, gap=gap)
+
+
+class SplitHorizontal2To1(SplitHorizontal):
+    """Horizontal split - wide left (2/3), narrow right (1/3).
+
+    +-------------+------+
+    |             |      |
+    |    LEFT     | RIGHT|
+    |     2/3     |  1/3 |
+    |             |      |
+    +-------------+------+
+    """
+
+    def __init__(self, padding: int = 8, gap: int = 8) -> None:
+        """Initialize 2:1 horizontal split."""
+        super().__init__(ratio=0.67, padding=padding, gap=gap)

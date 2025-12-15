@@ -61,6 +61,9 @@ LAYOUT_HERO = "hero"
 LAYOUT_SPLIT_H = "split_horizontal"  # Side by side (left/right)
 LAYOUT_SPLIT_V = "split_vertical"  # Stacked (top/bottom)
 LAYOUT_THREE_COLUMN = "three_column"
+LAYOUT_THREE_ROW = "three_row"
+LAYOUT_SPLIT_H_1_2 = "split_h_1_2"  # Narrow left (1/3), wide right (2/3)
+LAYOUT_SPLIT_H_2_1 = "split_h_2_1"  # Wide left (2/3), narrow right (1/3)
 
 # Widget types
 WIDGET_CAMERA = "camera"
@@ -86,6 +89,9 @@ LAYOUT_SLOT_COUNTS = {
     LAYOUT_SPLIT_H: 2,
     LAYOUT_SPLIT_V: 2,
     LAYOUT_THREE_COLUMN: 3,
+    LAYOUT_THREE_ROW: 3,
+    LAYOUT_SPLIT_H_1_2: 2,
+    LAYOUT_SPLIT_H_2_1: 2,
 }
 
 # Widget type display names for UI

@@ -324,6 +324,76 @@ export class GeekMagicPanel extends LitElement {
       height: 24px;
     }
 
+    /* Layout Picker */
+    .layout-section {
+      margin-bottom: 16px;
+    }
+
+    .layout-section-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--secondary-text-color);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .layout-picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .layout-option {
+      width: 48px;
+      height: 48px;
+      padding: 6px;
+      border: 2px solid var(--divider-color);
+      border-radius: 8px;
+      background: var(--card-background-color);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .layout-option:hover {
+      border-color: var(--primary-color);
+    }
+
+    .layout-option.selected {
+      border-color: var(--primary-color);
+      background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.1);
+    }
+
+    .layout-icon {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      gap: 2px;
+    }
+
+    .layout-icon > div {
+      background: var(--primary-text-color);
+      opacity: 0.3;
+      border-radius: 1px;
+    }
+
+    .layout-option.selected .layout-icon > div {
+      opacity: 0.6;
+    }
+
+    /* Layout icon patterns */
+    .layout-icon.g-2x2 { grid-template: 1fr 1fr / 1fr 1fr; }
+    .layout-icon.g-2x3 { grid-template: 1fr 1fr 1fr / 1fr 1fr; }
+    .layout-icon.g-3x2 { grid-template: 1fr 1fr / 1fr 1fr 1fr; }
+    .layout-icon.g-3x3 { grid-template: 1fr 1fr 1fr / 1fr 1fr 1fr; }
+    .layout-icon.s-h { grid-template: 1fr / 1fr 1fr; }
+    .layout-icon.s-v { grid-template: 1fr 1fr / 1fr; }
+    .layout-icon.s-h-12 { grid-template: 1fr / 1fr 2fr; }
+    .layout-icon.s-h-21 { grid-template: 1fr / 2fr 1fr; }
+    .layout-icon.t-col { grid-template: 1fr / 1fr 1fr 1fr; }
+    .layout-icon.t-row { grid-template: 1fr 1fr 1fr / 1fr; }
+    .layout-icon.hero { grid-template: 2fr 1fr / 1fr 1fr 1fr; }
+    .layout-icon.hero > div:first-child { grid-column: 1 / -1; }
+
     .slot-field {
       margin-bottom: 16px;
     }
@@ -874,27 +944,28 @@ export class GeekMagicPanel extends LitElement {
           </ha-card>
         </div>
 
-        <!-- Layout and theme selectors -->
-        <div class="form-row">
-          <ha-select
-            label="Layout"
-            .value=${this._editingView.layout}
-            @selected=${(e: CustomEvent) => {
-              const index = e.detail.index as number;
-              const keys = Object.keys(this._config!.layout_types);
-              const value = keys[index];
-              if (value) this._updateEditingView({ layout: value });
-            }}
-            @closed=${(e: Event) => e.stopPropagation()}
-          >
+        <!-- Layout picker -->
+        <div class="layout-section">
+          <span class="layout-section-label">Layout</span>
+          <div class="layout-picker">
             ${Object.entries(this._config.layout_types).map(
               ([key, info]) => html`
-                <mwc-list-item value=${key}>
-                  ${info.name} (${info.slots} slots)
-                </mwc-list-item>
+                <button
+                  class="layout-option ${this._editingView.layout === key
+                    ? "selected"
+                    : ""}"
+                  @click=${() => this._updateEditingView({ layout: key })}
+                  title="${info.name} (${info.slots} slots)"
+                >
+                  ${this._renderLayoutIcon(key)}
+                </button>
               `
             )}
-          </ha-select>
+          </div>
+        </div>
+
+        <!-- Theme selector -->
+        <div class="form-row">
           <ha-select
             label="Theme"
             .value=${this._editingView.theme}
@@ -1588,6 +1659,28 @@ export class GeekMagicPanel extends LitElement {
     return html`
       <div class="position-grid cols-${cols}">${cells}</div>
     `;
+  }
+
+  private _renderLayoutIcon(key: string) {
+    // Map layout key to CSS class and cell count
+    const layoutConfig: Record<string, { cls: string; cells: number }> = {
+      grid_2x2: { cls: "g-2x2", cells: 4 },
+      grid_2x3: { cls: "g-2x3", cells: 6 },
+      grid_3x2: { cls: "g-3x2", cells: 6 },
+      grid_3x3: { cls: "g-3x3", cells: 9 },
+      split_horizontal: { cls: "s-h", cells: 2 },
+      split_vertical: { cls: "s-v", cells: 2 },
+      split_h_1_2: { cls: "s-h-12", cells: 2 },
+      split_h_2_1: { cls: "s-h-21", cells: 2 },
+      three_column: { cls: "t-col", cells: 3 },
+      three_row: { cls: "t-row", cells: 3 },
+      hero: { cls: "hero", cells: 4 },
+    };
+
+    const config = layoutConfig[key] || { cls: "", cells: 4 };
+    const cells = Array.from({ length: config.cells }, () => html`<div></div>`);
+
+    return html`<div class="layout-icon ${config.cls}">${cells}</div>`;
   }
 
   private _swapSlots(fromSlot: number, toSlot: number): void {
