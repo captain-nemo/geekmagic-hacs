@@ -224,11 +224,31 @@ from ..widgets.layout_helpers import (
 
 ## Adding New Layouts
 
-1. Create layout class extending `Layout`
-2. Implement `_calculate_slots()` to define slot rectangles
-3. Register in `layouts/__init__.py`
-4. Add to `LAYOUT_CLASSES` in `coordinator.py`
-5. Add to config flow options
+When adding a new layout, update these files:
+
+### 1. Backend
+
+- `layouts/<name>.py` - Create layout class extending `Layout`
+- `layouts/__init__.py` - Import and export the new class
+- `const.py` - Add `LAYOUT_<NAME>` constant and add to `LAYOUT_SLOT_COUNTS`
+- `coordinator.py` - Add to `LAYOUT_CLASSES` dict
+
+### 2. Frontend
+
+- `frontend/src/geekmagic-panel.ts`:
+  - Add entry to `layoutConfig` object with CSS class and cell count
+  - Add CSS grid styles for the layout icon visualization in the `<style>` section
+- Run `npm run build` in `frontend/` directory to rebuild
+
+### 3. Documentation & Samples
+
+- `scripts/generate_samples.py` - Add layout to `generate_layout_samples()`
+- Run `uv run python scripts/generate_samples.py` to generate images
+- `README.md` - Add to "Layout Examples" section and "Layout Types" table
+
+### 4. Tests
+
+- `tests/layouts/test_layouts.py` - Add test class for the new layout
 
 ## Home Assistant Platform Discovery
 

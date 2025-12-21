@@ -27,9 +27,24 @@ from custom_components.geekmagic.const import (
     COLOR_WHITE,
     COLOR_YELLOW,
 )
-from custom_components.geekmagic.layouts.grid import Grid2x2, Grid2x3, Grid3x2
+from custom_components.geekmagic.layouts.corner_hero import (
+    HeroCornerBL,
+    HeroCornerBR,
+    HeroCornerTL,
+    HeroCornerTR,
+)
+from custom_components.geekmagic.layouts.fullscreen import FullscreenLayout
+from custom_components.geekmagic.layouts.grid import Grid2x2, Grid2x3, Grid3x2, Grid3x3
 from custom_components.geekmagic.layouts.hero import HeroLayout
-from custom_components.geekmagic.layouts.split import SplitHorizontal, SplitVertical
+from custom_components.geekmagic.layouts.sidebar import SidebarLeft, SidebarRight
+from custom_components.geekmagic.layouts.split import (
+    SplitHorizontal,
+    SplitHorizontal1To2,
+    SplitHorizontal2To1,
+    SplitVertical,
+    ThreeColumnLayout,
+    ThreeRowLayout,
+)
 from custom_components.geekmagic.render_context import RenderContext
 from custom_components.geekmagic.renderer import Renderer
 from custom_components.geekmagic.widgets import (
@@ -1273,6 +1288,66 @@ def generate_gauge_sizes_2x3(renderer: Renderer, output_dir: Path) -> None:
     save_image(renderer, img, "14_gauges_small", output_dir)
 
 
+def generate_layout_samples(renderer: Renderer, output_dir: Path) -> None:
+    """Generate sample images for all layouts showing their structure.
+
+    Each layout is rendered with numbered slots to show the layout structure.
+    """
+
+    layouts_dir = output_dir / "layouts"
+    layouts_dir.mkdir(exist_ok=True)
+
+    hass = MockHass()
+    hass.states.set("sensor.cpu", "73", {"unit_of_measurement": "%", "friendly_name": "CPU"})
+
+    # Define all layouts with their classes and names
+    layouts_to_generate = [
+        ("fullscreen", FullscreenLayout()),
+        ("grid_2x2", Grid2x2()),
+        ("grid_2x3", Grid2x3()),
+        ("grid_3x2", Grid3x2()),
+        ("grid_3x3", Grid3x3()),
+        ("split_horizontal", SplitHorizontal()),
+        ("split_vertical", SplitVertical()),
+        ("split_h_1_2", SplitHorizontal1To2()),
+        ("split_h_2_1", SplitHorizontal2To1()),
+        ("three_column", ThreeColumnLayout()),
+        ("three_row", ThreeRowLayout()),
+        ("hero", HeroLayout()),
+        ("sidebar_left", SidebarLeft()),
+        ("sidebar_right", SidebarRight()),
+        ("hero_corner_tl", HeroCornerTL()),
+        ("hero_corner_tr", HeroCornerTR()),
+        ("hero_corner_bl", HeroCornerBL()),
+        ("hero_corner_br", HeroCornerBR()),
+    ]
+
+    for layout_name, layout in layouts_to_generate:
+        img, draw = renderer.create_canvas()
+
+        # Add a widget to each slot showing the slot number
+        slot_count = layout.get_slot_count()
+        colors = [COLOR_CYAN, COLOR_LIME, COLOR_ORANGE, COLOR_PURPLE, COLOR_YELLOW, COLOR_RED]
+
+        for i in range(slot_count):
+            widget = GaugeWidget(
+                WidgetConfig(
+                    widget_type="gauge",
+                    slot=i,
+                    entity_id="sensor.cpu",
+                    label=f"Slot {i}",
+                    color=colors[i % len(colors)],
+                    options={"style": "bar"},
+                )
+            )
+            layout.set_widget(i, widget)
+
+        layout.render(renderer, draw, hass)  # type: ignore[arg-type]
+        save_image(renderer, img, f"layout_{layout_name}", layouts_dir)
+
+    print(f"Generated layout samples in {layouts_dir}")
+
+
 def main() -> None:
     """Generate all sample images."""
     output_dir = Path(__file__).parent.parent / "samples"
@@ -1300,6 +1375,7 @@ def main() -> None:
     generate_gauge_sizes_2x3(renderer, output_dir)
     generate_charts_dashboard(renderer, output_dir)
     generate_widget_sizes(renderer, output_dir)
+    generate_layout_samples(renderer, output_dir)
 
     print()
     print(f"Done! Generated samples in {output_dir}")

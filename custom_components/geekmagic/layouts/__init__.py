@@ -2,6 +2,7 @@
 
 from .base import Layout
 from .corner_hero import HeroCornerBL, HeroCornerBR, HeroCornerTL, HeroCornerTR
+from .fullscreen import FullscreenLayout
 from .grid import GridLayout
 from .hero import HeroLayout
 from .sidebar import SidebarLeft, SidebarRight
@@ -16,6 +17,7 @@ from .split import (
 )
 
 __all__ = [
+    "FullscreenLayout",
     "GridLayout",
     "HeroCornerBL",
     "HeroCornerBR",

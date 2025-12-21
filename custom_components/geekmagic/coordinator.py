@@ -26,6 +26,7 @@ from .const import (
     DEFAULT_REFRESH_INTERVAL,
     DEFAULT_SCREEN_CYCLE_INTERVAL,
     DOMAIN,
+    LAYOUT_FULLSCREEN,
     LAYOUT_GRID_2X2,
     LAYOUT_GRID_2X3,
     LAYOUT_GRID_3X2,
@@ -47,6 +48,7 @@ from .const import (
 )
 from .device import DeviceState, GeekMagicDevice, SpaceInfo
 from .layouts.corner_hero import HeroCornerBL, HeroCornerBR, HeroCornerTL, HeroCornerTR
+from .layouts.fullscreen import FullscreenLayout
 from .layouts.grid import Grid2x2, Grid2x3, Grid3x2, Grid3x3
 from .layouts.hero import HeroLayout
 from .layouts.sidebar import SidebarLeft, SidebarRight
@@ -99,6 +101,7 @@ LAYOUT_CLASSES = {
     LAYOUT_HERO_TR: HeroCornerTR,
     LAYOUT_HERO_BL: HeroCornerBL,
     LAYOUT_HERO_BR: HeroCornerBR,
+    LAYOUT_FULLSCREEN: FullscreenLayout,
 }
 
 WIDGET_CLASSES = {

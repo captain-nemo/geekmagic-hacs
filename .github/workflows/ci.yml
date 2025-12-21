@@ -85,3 +85,33 @@ jobs:
       - name: Run type checker
         run: uv run ty check
         continue-on-error: true  # ty is experimental, don't fail CI
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: custom_components/geekmagic/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: custom_components/geekmagic/frontend
+        run: npm ci
+
+      - name: Run TypeScript typecheck
+        working-directory: custom_components/geekmagic/frontend
+        run: npm run typecheck
+
+      - name: Verify dist is up-to-date
+        working-directory: custom_components/geekmagic/frontend
+        run: |
+          npm run build
+          if ! git diff --exit-code dist/; then
+            echo "ERROR: Frontend dist/ is out of date. Run 'npm run build' and commit the changes."
+            exit 1
+          fi
