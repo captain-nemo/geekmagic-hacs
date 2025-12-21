@@ -47,11 +47,6 @@ class ClockWidget(Widget):
         center_x = ctx.width // 2
         center_y = ctx.height // 2
 
-        # Get scaled fonts based on container height
-        font_time = ctx.get_font("xlarge")
-        font_date = ctx.get_font("regular")
-        font_small = ctx.get_font("small")
-
         # Get timezone: custom timezone option > HA config > UTC
         tz = None
         if self.timezone:
@@ -80,6 +75,27 @@ class ClockWidget(Widget):
         else:
             time_str = now.strftime("%H:%M")
             ampm = None
+
+        # Calculate available space for time
+        # Reserve space for date, label, and AM/PM indicator
+        time_area_height = ctx.height
+        if self.show_date:
+            time_area_height = int(ctx.height * 0.65)  # 65% for time when showing date
+        if self.config.label:
+            time_area_height = int(time_area_height * 0.85)  # Reduce for label
+
+        # Use fit_text for maximum time visibility
+        # Time should fill available width/height for best readability
+        font_time = ctx.fit_text(
+            time_str,
+            max_width=int(ctx.width * 0.95),
+            max_height=int(time_area_height * 0.60),
+            bold=False,
+        )
+
+        # Use semantic sizes for secondary elements
+        font_date = ctx.get_font("secondary")
+        font_small = ctx.get_font("tertiary")
 
         # Calculate positions relative to container
         offset_y = int(ctx.height * 0.08) if self.show_date else 0
