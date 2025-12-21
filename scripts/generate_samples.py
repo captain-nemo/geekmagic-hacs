@@ -55,15 +55,19 @@ from custom_components.geekmagic.layouts.split import (
 from custom_components.geekmagic.render_context import RenderContext
 from custom_components.geekmagic.renderer import Renderer
 from custom_components.geekmagic.widgets import (
+    ChartWidget,
     ClockWidget,
     EntityWidget,
     GaugeWidget,
     MediaWidget,
     MultiProgressWidget,
+    ProgressWidget,
     StatusListWidget,
+    StatusWidget,
     WeatherWidget,
     WidgetConfig,
 )
+from custom_components.geekmagic.widgets.theme import THEMES
 from scripts.mock_hass import (
     MockHass,
     create_battery_states,
@@ -1440,6 +1444,182 @@ def generate_layout_samples(renderer: Renderer, output_dir: Path) -> None:
     print(f"Generated layout samples in {layouts_dir}")
 
 
+def generate_theme_samples(renderer: Renderer, output_dir: Path) -> None:
+    """Generate sample images for each theme with varied widgets."""
+    import random
+
+    layouts_dir = output_dir / "layouts"
+    layouts_dir.mkdir(exist_ok=True)
+
+    hass = MockHass()
+    hass.states.set("sensor.cpu", "42", {"unit_of_measurement": "%", "friendly_name": "CPU"})
+    hass.states.set("sensor.memory", "68", {"unit_of_measurement": "%", "friendly_name": "Memory"})
+    hass.states.set("sensor.disk", "55", {"unit_of_measurement": "%", "friendly_name": "Disk"})
+    hass.states.set("sensor.network", "85", {"unit_of_measurement": "Mb/s", "friendly_name": "Net"})
+    hass.states.set("sensor.temp", "23", {"unit_of_measurement": "°C", "friendly_name": "Temp"})
+    hass.states.set(
+        "sensor.humidity", "58", {"unit_of_measurement": "%", "friendly_name": "Humidity"}
+    )
+    hass.states.set(
+        "sensor.battery", "87", {"unit_of_measurement": "%", "friendly_name": "Battery"}
+    )
+    hass.states.set("sensor.power", "2.4", {"unit_of_measurement": "kW", "friendly_name": "Power"})
+    hass.states.set("sensor.solar", "3.2", {"unit_of_measurement": "kW", "friendly_name": "Solar"})
+    hass.states.set("device_tracker.phone", "home", {"friendly_name": "Phone"})
+
+    # Define unique widget configurations for each theme
+    theme_configs: dict[str, list] = {
+        "classic": [
+            ("gauge", "sensor.cpu", "CPU", {"style": "ring"}),
+            ("gauge", "sensor.memory", "Memory", {"style": "ring"}),
+            ("chart", "sensor.temp", "Temp", {}),
+            ("gauge", "sensor.disk", "Disk", {"style": "bar"}),
+        ],
+        "minimal": [
+            ("entity", "sensor.temp", "Temp", {}),
+            ("entity", "sensor.humidity", "Humidity", {}),
+            ("status", "device_tracker.phone", "Phone", {}),
+            ("entity", "sensor.power", "Power", {}),
+        ],
+        "neon": [
+            ("gauge", "sensor.cpu", "CPU", {"style": "arc"}),
+            ("gauge", "sensor.memory", "MEM", {"style": "arc"}),
+            ("chart", "sensor.temp", "Temp", {}),
+            ("gauge", "sensor.battery", "BAT", {"style": "ring"}),
+        ],
+        "retro": [
+            ("gauge", "sensor.cpu", "CPU", {"style": "bar"}),
+            ("gauge", "sensor.memory", "MEM", {"style": "bar"}),
+            ("gauge", "sensor.disk", "DSK", {"style": "bar"}),
+            ("gauge", "sensor.network", "NET", {"style": "bar"}),
+        ],
+        "soft": [
+            ("entity", "sensor.temp", "Inside", {}),
+            ("progress", "sensor.battery", "Battery", {"target": 100}),
+            ("chart", "sensor.temp", "Trend", {}),
+            ("entity", "sensor.humidity", "Humidity", {}),
+        ],
+        "light": [
+            ("gauge", "sensor.cpu", "CPU", {"style": "ring"}),
+            ("gauge", "sensor.memory", "Memory", {"style": "ring"}),
+            ("entity", "sensor.temp", "Temp", {}),
+            ("progress", "sensor.disk", "Disk", {"target": 100}),
+        ],
+        "ocean": [
+            ("gauge", "sensor.humidity", "Humidity", {"style": "arc"}),
+            ("chart", "sensor.temp", "Temp", {}),
+            ("entity", "sensor.temp", "Inside", {}),
+            ("gauge", "sensor.battery", "Battery", {"style": "ring"}),
+        ],
+        "sunset": [
+            ("gauge", "sensor.power", "Power", {"style": "arc", "max": 5}),
+            ("gauge", "sensor.solar", "Solar", {"style": "arc", "max": 5}),
+            ("chart", "sensor.temp", "Temp", {}),
+            ("entity", "sensor.battery", "Battery", {}),
+        ],
+        "forest": [
+            ("entity", "sensor.temp", "Outdoor", {}),
+            ("gauge", "sensor.humidity", "Humidity", {"style": "bar"}),
+            ("chart", "sensor.temp", "Climate", {}),
+            ("progress", "sensor.solar", "Solar", {"target": 5}),
+        ],
+        "candy": [
+            ("gauge", "sensor.battery", "Battery", {"style": "ring"}),
+            ("entity", "sensor.temp", "Temp", {}),
+            ("progress", "sensor.cpu", "CPU", {"target": 100}),
+            ("chart", "sensor.temp", "Trend", {}),
+        ],
+    }
+
+    for theme_name, theme in THEMES.items():
+        layout = Grid2x2(padding=8, gap=8)
+        layout.theme = theme
+
+        accent_colors = theme.accent_colors
+        configs = theme_configs.get(theme_name, theme_configs["classic"])
+
+        chart_history: dict[int, list[float]] = {}
+
+        for i, (widget_type, entity_id, label, options) in enumerate(configs):
+            color = accent_colors[i % len(accent_colors)]
+            widget: (
+                ClockWidget
+                | GaugeWidget
+                | EntityWidget
+                | ChartWidget
+                | ProgressWidget
+                | StatusWidget
+            )
+
+            if widget_type == "gauge":
+                widget = GaugeWidget(
+                    WidgetConfig(
+                        widget_type="gauge",
+                        slot=i,
+                        entity_id=entity_id,
+                        label=label,
+                        color=color,
+                        options=options,
+                    )
+                )
+            elif widget_type == "entity":
+                widget = EntityWidget(
+                    WidgetConfig(
+                        widget_type="entity",
+                        slot=i,
+                        entity_id=entity_id,
+                        label=label,
+                        color=color,
+                        options={"show_panel": True, **options},
+                    )
+                )
+            elif widget_type == "chart":
+                widget = ChartWidget(
+                    WidgetConfig(
+                        widget_type="chart",
+                        slot=i,
+                        entity_id=entity_id,
+                        label=label,
+                        color=color,
+                        options=options,
+                    )
+                )
+                rng = random.Random(42 + i)  # noqa: S311
+                chart_history[i] = [20 + rng.uniform(-3, 5) for _ in range(48)]
+            elif widget_type == "progress":
+                widget = ProgressWidget(
+                    WidgetConfig(
+                        widget_type="progress",
+                        slot=i,
+                        entity_id=entity_id,
+                        label=label,
+                        color=color,
+                        options=options,
+                    )
+                )
+            elif widget_type == "status":
+                widget = StatusWidget(
+                    WidgetConfig(
+                        widget_type="status",
+                        slot=i,
+                        entity_id=entity_id,
+                        label=label,
+                        color=color,
+                        options={"on_color": theme.success, "off_color": theme.error},
+                    )
+                )
+            else:
+                continue
+
+            layout.set_widget(i, widget)
+
+        img, draw = renderer.create_canvas(background=theme.background)
+        layout.render(renderer, draw, build_widget_states(layout, hass, chart_history))
+        save_image(renderer, img, f"layout_theme_{theme_name}", layouts_dir)
+
+    print(f"Generated {len(THEMES)} theme samples in {layouts_dir}")
+
+
 def main() -> None:
     """Generate all sample images."""
     output_dir = Path(__file__).parent.parent / "samples"
@@ -1468,9 +1648,10 @@ def main() -> None:
     generate_charts_dashboard(renderer, output_dir)
     generate_widget_sizes(renderer, output_dir)
     generate_layout_samples(renderer, output_dir)
+    generate_theme_samples(renderer, output_dir)
 
     print()
-    print(f"Done! Generated samples in {output_dir}")
+    print(f"Done! Generated all samples in {output_dir}")
 
 
 if __name__ == "__main__":
