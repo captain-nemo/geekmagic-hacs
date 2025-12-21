@@ -30,6 +30,7 @@ async def async_setup_entry(
     entities = [
         GeekMagicBrightnessNumber(coordinator),
         GeekMagicRefreshIntervalNumber(coordinator),
+        GeekMagicCycleIntervalNumber(coordinator),
     ]
 
     async_add_entities(entities)
@@ -88,4 +89,38 @@ class GeekMagicRefreshIntervalNumber(GeekMagicEntity, NumberEntity):
         """Set refresh interval."""
         # Update options
         new_options = {**self.coordinator.entry.options, "refresh_interval": int(value)}
+        self.hass.config_entries.async_update_entry(self.coordinator.entry, options=new_options)
+
+
+class GeekMagicCycleIntervalNumber(GeekMagicEntity, NumberEntity):
+    """Number entity for view cycle interval.
+
+    Controls how often the display cycles between custom views.
+    Set to 0 to disable automatic cycling (manual view selection only).
+    """
+
+    _attr_name = "View Cycle Interval"
+    _attr_icon = "mdi:view-carousel"
+    _attr_native_min_value = 0
+    _attr_native_max_value = 300
+    _attr_native_step = 5
+    _attr_native_unit_of_measurement = "s"
+    _attr_mode = NumberMode.BOX
+
+    def __init__(self, coordinator: GeekMagicCoordinator) -> None:
+        """Initialize cycle interval number."""
+        super().__init__(coordinator, "cycle_interval")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return current cycle interval (0 = disabled)."""
+        return self.coordinator.options.get("screen_cycle_interval", 0)
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set cycle interval."""
+        # Update options
+        new_options = {
+            **self.coordinator.entry.options,
+            "screen_cycle_interval": int(value),
+        }
         self.hass.config_entries.async_update_entry(self.coordinator.entry, options=new_options)
