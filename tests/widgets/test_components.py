@@ -29,6 +29,9 @@ def mock_ctx() -> MagicMock:
     ctx.height = 80
     ctx.get_font.return_value = MagicMock()
     ctx.get_text_size.return_value = (40, 16)
+    # Theme colors for theme-aware components
+    ctx.theme.text_primary = (255, 255, 255)
+    ctx.theme.text_secondary = (150, 150, 150)
     return ctx
 
 
@@ -56,7 +59,7 @@ class TestText:
         mock_ctx.draw_text.assert_called_once()
         args = mock_ctx.draw_text.call_args
         assert args[0][1] == (60, 40)  # x=10+50, y=20+20
-        assert args[0][3] == (255, 255, 255)  # default white
+        assert args[0][3] == (255, 255, 255)  # theme.text_primary (default)
 
     def test_render_start(self, mock_ctx: MagicMock) -> None:
         """Test left-aligned text rendering."""

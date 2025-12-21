@@ -10,8 +10,9 @@ Example:
 
 from __future__ import annotations
 
-from ..const import COLOR_GRAY, COLOR_WHITE
 from .components import (
+    THEME_TEXT_PRIMARY,
+    THEME_TEXT_SECONDARY,
     Adaptive,
     Arc,
     Bar,
@@ -61,9 +62,9 @@ def BarGauge(
         header_children.append(Icon(icon, size=16, color=color))
     header_children.extend(
         [
-            Text(label.upper(), font="tiny", color=COLOR_GRAY),
+            Text(label.upper(), font="tiny", color=THEME_TEXT_SECONDARY),
             Spacer(),
-            Text(value, font="medium", bold=True, color=COLOR_WHITE),
+            Text(value, font="medium", bold=True, color=THEME_TEXT_PRIMARY),
         ]
     )
 
@@ -105,8 +106,8 @@ def RingGauge(
                 justify="center",
                 gap=4,
                 children=[
-                    Text(value, font="large", color=COLOR_WHITE),
-                    Text(label.upper(), font="tiny", color=COLOR_GRAY),
+                    Text(value, font="large", color=THEME_TEXT_PRIMARY),
+                    Text(label.upper(), font="tiny", color=THEME_TEXT_SECONDARY),
                 ],
             ),
         ],
@@ -139,7 +140,7 @@ def ArcGauge(
                 align="center",
                 padding=4,
                 children=[
-                    Text(label.upper(), font="tiny", color=COLOR_GRAY),
+                    Text(label.upper(), font="tiny", color=THEME_TEXT_SECONDARY),
                 ],
             ),
             # Add top padding to arc so it doesn't overlap with label
@@ -155,7 +156,7 @@ def ArcGauge(
                 align="center",
                 justify="center",
                 children=[
-                    Text(value, font="medium", color=COLOR_WHITE),
+                    Text(value, font="medium", color=THEME_TEXT_PRIMARY),
                 ],
             ),
         ],
@@ -167,8 +168,8 @@ def IconValue(
     value: str,
     label: str,
     color: Color,
-    value_color: Color = COLOR_WHITE,
-    label_color: Color = COLOR_GRAY,
+    value_color: Color = THEME_TEXT_PRIMARY,
+    label_color: Color = THEME_TEXT_SECONDARY,
     icon_size: int | None = None,
 ) -> Component:
     """Icon with value and label - uses IconValueDisplay for proper sizing.
@@ -199,8 +200,8 @@ def IconValue(
 def CenteredValue(
     value: str,
     label: str | None = None,
-    value_color: Color = COLOR_WHITE,
-    label_color: Color = COLOR_GRAY,
+    value_color: Color = THEME_TEXT_PRIMARY,
+    label_color: Color = THEME_TEXT_SECONDARY,
     value_font: str = "large",
     label_font: str = "small",
 ) -> Component:
@@ -234,8 +235,8 @@ def CenteredValue(
 def LabelValue(
     label: str,
     value: str,
-    label_color: Color = COLOR_GRAY,
-    value_color: Color = COLOR_WHITE,
+    label_color: Color = THEME_TEXT_SECONDARY,
+    value_color: Color = THEME_TEXT_PRIMARY,
     font: str = "small",
 ) -> Component:
     """Horizontal label + value pair that adapts to available space.
@@ -294,7 +295,7 @@ def StatusIndicator(
                 children=[
                     # Status indicator icon - 14px for visibility on small display
                     Icon("check" if is_on else "warning", size=14, color=color),
-                    Text(label, font="small", color=COLOR_WHITE),
+                    Text(label, font="small", color=THEME_TEXT_PRIMARY),
                 ],
             ),
             Text(status_text, font="small", color=color),
@@ -327,9 +328,9 @@ def ProgressRow(
         header_children.append(Icon(icon, size=14, color=color))
     header_children.extend(
         [
-            Text(label.upper(), font="tiny", color=COLOR_GRAY),
+            Text(label.upper(), font="tiny", color=THEME_TEXT_SECONDARY),
             Spacer(),
-            Text(value, font="small", color=COLOR_WHITE),
+            Text(value, font="small", color=THEME_TEXT_PRIMARY),
         ]
     )
 
@@ -345,7 +346,7 @@ def ProgressRow(
                 gap=6,
                 children=[
                     Bar(percent=percent, color=color, height=6),
-                    Text(f"{percent:.0f}%", font="tiny", color=COLOR_WHITE),
+                    Text(f"{percent:.0f}%", font="tiny", color=THEME_TEXT_PRIMARY),
                 ],
             ),
         ],

@@ -5,9 +5,19 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from ..const import COLOR_GRAY, COLOR_LIME, COLOR_RED, COLOR_WHITE, PLACEHOLDER_NAME
+from ..const import COLOR_LIME, COLOR_RED, PLACEHOLDER_NAME
 from .base import Widget, WidgetConfig
-from .components import Color, Column, Component, Icon, Row, Spacer, Text
+from .components import (
+    THEME_TEXT_PRIMARY,
+    THEME_TEXT_SECONDARY,
+    Color,
+    Column,
+    Component,
+    Icon,
+    Row,
+    Spacer,
+    Text,
+)
 from .helpers import estimate_max_chars, truncate_text
 
 if TYPE_CHECKING:
@@ -58,7 +68,7 @@ class StatusIndicator(Component):
             children.append(Icon(name=self.icon, size=icon_size, color=color))
 
         # Add name text
-        children.append(Text(text=name, font="small", color=COLOR_WHITE, align="start"))
+        children.append(Text(text=name, font="small", color=THEME_TEXT_PRIMARY, align="start"))
 
         # Add spacer to push status text to the right
         if self.show_status_text:
@@ -134,7 +144,12 @@ class StatusListDisplay(Component):
         # Add title if provided
         if self.title:
             rows.append(
-                Text(text=self.title.upper(), font="small", color=COLOR_GRAY, align="start")
+                Text(
+                    text=self.title.upper(),
+                    font="small",
+                    color=THEME_TEXT_SECONDARY,
+                    align="start",
+                )
             )
 
         # Calculate dimensions for items
@@ -161,7 +176,7 @@ class StatusListDisplay(Component):
 
             # Add label
             row_children.append(
-                Text(text=display_label, font="tiny", color=COLOR_WHITE, align="start")
+                Text(text=display_label, font="tiny", color=THEME_TEXT_PRIMARY, align="start")
             )
 
             # Add status text if configured

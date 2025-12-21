@@ -6,14 +6,12 @@ from typing import TYPE_CHECKING
 
 from ..const import (
     COLOR_CYAN,
-    COLOR_GRAY,
-    COLOR_WHITE,
     PLACEHOLDER_NAME,
     PLACEHOLDER_VALUE,
 )
 from .base import Widget, WidgetConfig
 from .component_helpers import CenteredValue, IconValue
-from .components import Component, Panel
+from .components import THEME_TEXT_PRIMARY, THEME_TEXT_SECONDARY, Component, Panel
 
 if TYPE_CHECKING:
     from ..render_context import RenderContext
@@ -81,15 +79,15 @@ class EntityWidget(Widget):
                 value=value_text,
                 label=label or "",
                 color=color,
-                value_color=COLOR_WHITE,
-                label_color=COLOR_GRAY,
+                value_color=THEME_TEXT_PRIMARY,
+                label_color=THEME_TEXT_SECONDARY,
             )
         else:
             content = CenteredValue(
                 value=value_text,
                 label=label,
-                value_color=color,
-                label_color=COLOR_GRAY,
+                value_color=THEME_TEXT_PRIMARY,
+                label_color=THEME_TEXT_SECONDARY,
             )
 
         # Wrap in panel if enabled

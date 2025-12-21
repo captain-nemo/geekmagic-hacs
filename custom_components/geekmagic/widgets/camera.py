@@ -7,9 +7,16 @@ from typing import TYPE_CHECKING
 
 from PIL import Image
 
-from ..const import COLOR_GRAY, COLOR_WHITE
 from .base import Widget, WidgetConfig
-from .components import Color, Column, Component, Icon, Text
+from .components import (
+    THEME_TEXT_PRIMARY,
+    THEME_TEXT_SECONDARY,
+    Color,
+    Column,
+    Component,
+    Icon,
+    Text,
+)
 
 if TYPE_CHECKING:
     from ..render_context import RenderContext
@@ -22,7 +29,7 @@ class CameraImage(Component):
 
     image: Image.Image
     label: str | None = None
-    color: Color = COLOR_WHITE
+    color: Color = THEME_TEXT_PRIMARY
     fit: str = "contain"
 
     def measure(self, ctx: RenderContext, max_width: int, max_height: int) -> tuple[int, int]:
@@ -58,8 +65,8 @@ def _camera_placeholder(label: str = "No Image") -> Component:
     """Create placeholder component when no camera image available."""
     return Column(
         children=[
-            Icon("camera", color=COLOR_GRAY, max_size=48),
-            Text(label, font="small", color=COLOR_GRAY),
+            Icon("camera", color=THEME_TEXT_SECONDARY, max_size=48),
+            Text(label, font="small", color=THEME_TEXT_SECONDARY),
         ],
         gap=8,
         align="center",
@@ -96,6 +103,6 @@ class CameraWidget(Widget):
         return CameraImage(
             image=state.image.convert("RGB") if state.image.mode != "RGB" else state.image,
             label=label,
-            color=self.config.color or COLOR_WHITE,
+            color=self.config.color or THEME_TEXT_PRIMARY,
             fit=self.fit,
         )

@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from ..const import COLOR_GRAY, COLOR_WHITE
+from ..const import COLOR_WHITE
 from .base import Widget, WidgetConfig
-from .components import Color, Component
+from .components import THEME_TEXT_PRIMARY, THEME_TEXT_SECONDARY, Color, Component
 
 if TYPE_CHECKING:
     from ..render_context import RenderContext
@@ -27,9 +27,9 @@ class ClockDisplay(Component):
     date_str: str | None = None
     ampm: str | None = None
     label: str | None = None
-    time_color: Color = COLOR_WHITE
-    date_color: Color = COLOR_GRAY
-    label_color: Color = COLOR_GRAY
+    time_color: Color = THEME_TEXT_PRIMARY
+    date_color: Color = THEME_TEXT_SECONDARY
+    label_color: Color = THEME_TEXT_SECONDARY
 
     def measure(self, ctx: RenderContext, max_width: int, max_height: int) -> tuple[int, int]:
         return (max_width, max_height)
@@ -104,7 +104,7 @@ class ClockDisplay(Component):
                 self.ampm,
                 (time_x + time_w // 2 + 4 + ampm_w // 2, time_y),
                 font=ampm_font,
-                color=COLOR_GRAY,
+                color=THEME_TEXT_SECONDARY,
                 anchor="mm",
             )
         else:

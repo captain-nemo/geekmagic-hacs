@@ -6,9 +6,9 @@ import contextlib
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, ClassVar
 
-from ..const import COLOR_CYAN, COLOR_GRAY
+from ..const import COLOR_CYAN
 from .base import Widget, WidgetConfig
-from .components import Color, Component
+from .components import THEME_TEXT_SECONDARY, Color, Component
 
 if TYPE_CHECKING:
     from ..render_context import RenderContext
@@ -60,7 +60,7 @@ class ChartDisplay(Component):
                 display_name,
                 (x + padding, header_y),
                 font=font_label,
-                color=COLOR_GRAY,
+                color=THEME_TEXT_SECONDARY,
                 anchor="lm",
             )
 
@@ -91,21 +91,25 @@ class ChartDisplay(Component):
                         f"{min_val:.1f}",
                         (x + padding, range_y),
                         font=font_label,
-                        color=COLOR_GRAY,
+                        color=THEME_TEXT_SECONDARY,
                         anchor="lm",
                     )
                     ctx.draw_text(
                         f"{max_val:.1f}",
                         (x + width - padding, range_y),
                         font=font_label,
-                        color=COLOR_GRAY,
+                        color=THEME_TEXT_SECONDARY,
                         anchor="rm",
                     )
         else:
             center_x = x + width // 2
             center_y = (chart_top + chart_bottom) // 2
             ctx.draw_text(
-                "No data", (center_x, center_y), font=font_label, color=COLOR_GRAY, anchor="mm"
+                "No data",
+                (center_x, center_y),
+                font=font_label,
+                color=THEME_TEXT_SECONDARY,
+                anchor="mm",
             )
 
     def _is_binary_data(self) -> bool:

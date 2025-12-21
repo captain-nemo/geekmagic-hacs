@@ -5,9 +5,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..const import COLOR_CYAN, COLOR_GRAY, COLOR_WHITE
+from ..const import COLOR_CYAN
 from .base import Widget, WidgetConfig
-from .components import Bar, Color, Column, Component, Icon, Row, Spacer, Text
+from .components import (
+    THEME_TEXT_PRIMARY,
+    THEME_TEXT_SECONDARY,
+    Bar,
+    Color,
+    Column,
+    Component,
+    Icon,
+    Row,
+    Spacer,
+    Text,
+)
 
 if TYPE_CHECKING:
     from ..render_context import RenderContext
@@ -58,18 +69,18 @@ class NowPlaying(Component):
 
         # Build component tree
         children = [
-            Text("NOW PLAYING", font="small", color=COLOR_GRAY),
+            Text("NOW PLAYING", font="small", color=THEME_TEXT_SECONDARY),
             Spacer(min_size=int(height * 0.03)),
-            Text(title, font="regular", color=COLOR_WHITE),
+            Text(title, font="regular", color=THEME_TEXT_PRIMARY),
         ]
 
         if self.show_artist and artist:
             children.append(Spacer(min_size=int(height * 0.02)))
-            children.append(Text(artist, font="small", color=COLOR_GRAY))
+            children.append(Text(artist, font="small", color=THEME_TEXT_SECONDARY))
 
         if self.show_album and self.album:
             children.append(Spacer(min_size=int(height * 0.02)))
-            children.append(Text(album, font="small", color=COLOR_GRAY))
+            children.append(Text(album, font="small", color=THEME_TEXT_SECONDARY))
 
         # Add spacer before progress section
         children.append(Spacer())
@@ -90,9 +101,9 @@ class NowPlaying(Component):
                     Spacer(min_size=int(height * 0.02)),
                     Row(
                         children=[
-                            Text(pos_str, font="small", color=COLOR_GRAY, align="start"),
+                            Text(pos_str, font="small", color=THEME_TEXT_SECONDARY, align="start"),
                             Spacer(),
-                            Text(dur_str, font="small", color=COLOR_GRAY, align="end"),
+                            Text(dur_str, font="small", color=THEME_TEXT_SECONDARY, align="end"),
                         ]
                     ),
                 ]
@@ -117,9 +128,9 @@ class MediaIdle(Component):
         # Build component tree
         Column(
             children=[
-                Icon("pause", size=icon_size, color=COLOR_GRAY),
+                Icon("pause", size=icon_size, color=THEME_TEXT_SECONDARY),
                 Spacer(min_size=int(height * 0.08)),
-                Text("PAUSED", font="small", color=COLOR_GRAY),
+                Text("PAUSED", font="small", color=THEME_TEXT_SECONDARY),
             ],
             align="center",
             justify="center",

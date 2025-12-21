@@ -28,13 +28,27 @@ from stretchable.style import (
     JustifyContent,
 )
 
-from ..const import COLOR_WHITE
-
 if TYPE_CHECKING:
     from ..render_context import RenderContext
 
 # Type aliases
 Color = tuple[int, int, int]
+
+# Sentinel values for theme-aware colors
+# These are resolved at render time to the theme's actual colors
+THEME_TEXT_PRIMARY: Color = (-1, -1, -1)  # Resolves to theme.text_primary
+THEME_TEXT_SECONDARY: Color = (-2, -2, -2)  # Resolves to theme.text_secondary
+
+
+def _resolve_color(color: Color, ctx: RenderContext) -> Color:
+    """Resolve theme-aware color sentinels to actual colors."""
+    if color == THEME_TEXT_PRIMARY:
+        return ctx.theme.text_primary
+    if color == THEME_TEXT_SECONDARY:
+        return ctx.theme.text_secondary
+    return color
+
+
 Align = Literal["start", "center", "end", "stretch"]
 Justify = Literal["start", "center", "end", "space-between", "space-around"]
 
@@ -104,12 +118,18 @@ class Component(ABC):
 
 @dataclass
 class Text(Component):
-    """Text component with font and color options."""
+    """Text component with font and color options.
+
+    Color can be:
+    - A specific RGB tuple like (255, 255, 255)
+    - THEME_TEXT_PRIMARY for main text (resolves to theme.text_primary)
+    - THEME_TEXT_SECONDARY for labels/secondary text (resolves to theme.text_secondary)
+    """
 
     text: str
     font: str = "regular"
     bold: bool = False
-    color: Color = COLOR_WHITE
+    color: Color = THEME_TEXT_PRIMARY  # Theme-aware by default
     align: Align = "center"
 
     def measure(self, ctx: RenderContext, max_width: int, max_height: int) -> tuple[int, int]:
@@ -128,7 +148,9 @@ class Text(Component):
         else:
             text_x = x + width // 2
 
-        ctx.draw_text(self.text, (text_x, y + height // 2), font, self.color, anchor)
+        # Resolve theme-aware colors at render time
+        resolved_color = _resolve_color(self.color, ctx)
+        ctx.draw_text(self.text, (text_x, y + height // 2), font, resolved_color, anchor)
 
 
 @dataclass
@@ -138,14 +160,14 @@ class Icon(Component):
     Args:
         name: Icon name (e.g., "cpu", "temp", "lock")
         size: Fixed size in pixels, or None for auto-sizing
-        color: Icon color as RGB tuple
+        color: Icon color (supports THEME_TEXT_PRIMARY/SECONDARY)
         min_size: Minimum size for readability (default 12px)
         max_size: Maximum size to prevent icons dominating layout (default 32px)
     """
 
     name: str
     size: int | None = None  # None = auto-size to container
-    color: Color = COLOR_WHITE
+    color: Color = THEME_TEXT_PRIMARY  # Theme-aware by default
     min_size: int = 12  # Minimum size for readability
     max_size: int = 32  # Maximum size to prevent oversized icons
 
@@ -164,7 +186,9 @@ class Icon(Component):
         # Center icon in available space
         ix = x + (width - size) // 2
         iy = y + (height - size) // 2
-        ctx.draw_icon(self.name, (ix, iy), size, self.color)
+        # Resolve theme-aware colors at render time
+        resolved_color = _resolve_color(self.color, ctx)
+        ctx.draw_icon(self.name, (ix, iy), size, resolved_color)
 
 
 @dataclass
@@ -645,7 +669,7 @@ class FillText(Component):
     text: str
     hierarchy: Literal["primary", "secondary", "tertiary"] = "primary"
     bold: bool = False
-    color: Color = COLOR_WHITE
+    color: Color = THEME_TEXT_PRIMARY
     max_ratio: float = 0.95
     min_size: int = 12
 
@@ -692,10 +716,13 @@ class FillText(Component):
         if text_h < self.min_size:
             return  # Too small, skip
 
+        # Resolve theme-aware colors
+        resolved_color = _resolve_color(self.color, ctx)
+
         # Center in container
         tx = x + width // 2
         ty = y + height // 2
-        ctx.draw_text(self.text, (tx, ty), font, self.color, anchor="mm")
+        ctx.draw_text(self.text, (tx, ty), font, resolved_color, anchor="mm")
 
 
 @dataclass
@@ -895,9 +922,9 @@ class IconValueDisplay(Component):
     icon: str
     value: str
     label: str
-    icon_color: tuple[int, int, int] = COLOR_WHITE
-    value_color: tuple[int, int, int] = COLOR_WHITE
-    label_color: tuple[int, int, int] = (128, 128, 128)
+    icon_color: tuple[int, int, int] = THEME_TEXT_PRIMARY
+    value_color: tuple[int, int, int] = THEME_TEXT_PRIMARY
+    label_color: tuple[int, int, int] = THEME_TEXT_SECONDARY
     icon_size: int | None = None
 
     def measure(self, ctx: RenderContext, max_width: int, max_height: int) -> tuple[int, int]:
@@ -908,6 +935,11 @@ class IconValueDisplay(Component):
         padding = int(width * 0.06)
         inner_width = width - padding * 2
         inner_height = height - padding * 2
+
+        # Resolve theme-aware colors
+        icon_color = _resolve_color(self.icon_color, ctx)
+        value_color = _resolve_color(self.value_color, ctx)
+        label_color = _resolve_color(self.label_color, ctx)
 
         # Calculate sizes based on container
         icon_size = self.icon_size or max(16, min(48, int(inner_height * 0.25)))
@@ -926,7 +958,7 @@ class IconValueDisplay(Component):
             self.icon,
             (center_x - icon_size // 2, current_y),
             size=icon_size,
-            color=self.icon_color,
+            color=icon_color,
         )
         current_y += icon_size + 6
 
@@ -941,7 +973,7 @@ class IconValueDisplay(Component):
             self.value,
             (center_x, current_y + value_height // 2),
             font=value_font,
-            color=self.value_color,
+            color=value_color,
             anchor="mm",
         )
         current_y += value_height + 6
@@ -957,7 +989,7 @@ class IconValueDisplay(Component):
             self.label.upper(),
             (center_x, current_y + label_height // 2),
             font=label_font,
-            color=self.label_color,
+            color=label_color,
             anchor="mm",
         )
 
@@ -967,6 +999,8 @@ class IconValueDisplay(Component):
 # ============================================================================
 
 __all__ = [
+    "THEME_TEXT_PRIMARY",
+    "THEME_TEXT_SECONDARY",
     "Adaptive",
     "Align",
     "Arc",

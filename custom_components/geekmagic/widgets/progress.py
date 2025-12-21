@@ -5,9 +5,20 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, ClassVar
 
-from ..const import COLOR_CYAN, COLOR_DARK_GRAY, COLOR_GRAY, COLOR_WHITE
+from ..const import COLOR_CYAN, COLOR_DARK_GRAY
 from .base import Widget, WidgetConfig
-from .components import Bar, Color, Column, Component, Icon, Row, Spacer, Text
+from .components import (
+    THEME_TEXT_PRIMARY,
+    THEME_TEXT_SECONDARY,
+    Bar,
+    Color,
+    Column,
+    Component,
+    Icon,
+    Row,
+    Spacer,
+    Text,
+)
 from .helpers import format_number
 
 if TYPE_CHECKING:
@@ -80,12 +91,14 @@ class ProgressDisplay(Component):
             if self.icon:
                 header_children.append(Icon(name=self.icon, size=icon_size, color=self.color))
             header_children.append(
-                Text(text=label_text, font="small", color=COLOR_GRAY, align="center")
+                Text(text=label_text, font="small", color=THEME_TEXT_SECONDARY, align="center")
             )
 
             # Row 2: Value (centered, larger)
             value_row = Row(
-                children=[Text(text=value_text, font="large", color=COLOR_WHITE, align="center")],
+                children=[
+                    Text(text=value_text, font="large", color=THEME_TEXT_PRIMARY, align="center")
+                ],
                 justify="center",
                 padding=padding,
             )
@@ -99,7 +112,9 @@ class ProgressDisplay(Component):
                         background=COLOR_DARK_GRAY,
                         height=bar_height,
                     ),
-                    Text(text=f"{percent:.0f}%", font="small", color=COLOR_WHITE, align="end"),
+                    Text(
+                        text=f"{percent:.0f}%", font="small", color=THEME_TEXT_PRIMARY, align="end"
+                    ),
                 ],
                 gap=8,
                 align="center",
@@ -125,7 +140,7 @@ class ProgressDisplay(Component):
             if self.icon:
                 row1_children.append(Icon(name=self.icon, size=icon_size, color=self.color))
             row1_children.append(
-                Text(text=value_text, font="small", color=COLOR_WHITE, align="start")
+                Text(text=value_text, font="small", color=THEME_TEXT_PRIMARY, align="start")
             )
 
             row2_children: list[Component] = [
@@ -135,7 +150,7 @@ class ProgressDisplay(Component):
                     background=COLOR_DARK_GRAY,
                     height=bar_height,
                 ),
-                Text(text=f"{percent:.0f}%", font="tiny", color=COLOR_WHITE, align="end"),
+                Text(text=f"{percent:.0f}%", font="tiny", color=THEME_TEXT_PRIMARY, align="end"),
             ]
 
             Column(
@@ -167,14 +182,18 @@ class ProgressDisplay(Component):
             if available_for_label >= label_width:
                 top_row_children.extend(
                     [
-                        Text(text=label_text, font="small", color=COLOR_GRAY, align="start"),
+                        Text(
+                            text=label_text, font="small", color=THEME_TEXT_SECONDARY, align="start"
+                        ),
                         Spacer(),
-                        Text(text=value_text, font="regular", color=COLOR_WHITE, align="end"),
+                        Text(
+                            text=value_text, font="regular", color=THEME_TEXT_PRIMARY, align="end"
+                        ),
                     ]
                 )
             else:
                 top_row_children.append(
-                    Text(text=value_text, font="regular", color=COLOR_WHITE, align="start")
+                    Text(text=value_text, font="regular", color=THEME_TEXT_PRIMARY, align="start")
                 )
 
             bottom_row_children: list[Component] = [
@@ -184,7 +203,7 @@ class ProgressDisplay(Component):
                     background=COLOR_DARK_GRAY,
                     height=bar_height,
                 ),
-                Text(text=f"{percent:.0f}%", font="small", color=COLOR_WHITE, align="end"),
+                Text(text=f"{percent:.0f}%", font="small", color=THEME_TEXT_PRIMARY, align="end"),
             ]
 
             Column(
@@ -266,7 +285,12 @@ class MultiProgressDisplay(Component):
             children.append(
                 Row(
                     children=[
-                        Text(text=self.title.upper(), font="small", color=COLOR_GRAY, align="start")
+                        Text(
+                            text=self.title.upper(),
+                            font="small",
+                            color=THEME_TEXT_SECONDARY,
+                            align="start",
+                        )
                     ],
                     padding=padding,
                 )
@@ -292,16 +316,18 @@ class MultiProgressDisplay(Component):
                 top_row_children.append(Icon(name=icon, size=icon_size, color=color))
             top_row_children.extend(
                 [
-                    Text(text=label.upper(), font="tiny", color=COLOR_GRAY, align="start"),
+                    Text(
+                        text=label.upper(), font="tiny", color=THEME_TEXT_SECONDARY, align="start"
+                    ),
                     Spacer(),
-                    Text(text=value_text, font="tiny", color=COLOR_WHITE, align="end"),
+                    Text(text=value_text, font="tiny", color=THEME_TEXT_PRIMARY, align="end"),
                 ]
             )
 
             # Bottom row: Bar + Percent
             bottom_row_children = [
                 Bar(percent=percent, color=color, background=COLOR_DARK_GRAY, height=bar_height),
-                Text(text=f"{percent:.0f}%", font="tiny", color=COLOR_WHITE, align="end"),
+                Text(text=f"{percent:.0f}%", font="tiny", color=THEME_TEXT_PRIMARY, align="end"),
             ]
 
             # Combine into a column for this item

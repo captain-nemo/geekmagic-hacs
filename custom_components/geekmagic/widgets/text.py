@@ -5,9 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
-from ..const import COLOR_GRAY, COLOR_WHITE
 from .base import Widget, WidgetConfig
-from .components import Color, Component
+from .components import (
+    THEME_TEXT_PRIMARY,
+    THEME_TEXT_SECONDARY,
+    Color,
+    Component,
+    _resolve_color,
+)
 
 if TYPE_CHECKING:
     from ..render_context import RenderContext
@@ -32,8 +37,8 @@ class TextDisplay(Component):
 
     text: str
     label: str | None = None
-    color: Color = COLOR_WHITE
-    label_color: Color = COLOR_GRAY
+    color: Color = THEME_TEXT_PRIMARY
+    label_color: Color = THEME_TEXT_SECONDARY
     align: Literal["start", "center", "end"] = "center"
 
     def measure(self, ctx: RenderContext, max_width: int, max_height: int) -> tuple[int, int]:
@@ -44,6 +49,10 @@ class TextDisplay(Component):
         padding = int(width * 0.05)
         inner_width = width - padding * 2
         inner_height = height - padding * 2
+
+        # Resolve theme-aware colors
+        text_color = _resolve_color(self.color, ctx)
+        label_color = _resolve_color(self.label_color, ctx)
 
         # Calculate vertical space distribution
         label_height = 0
@@ -83,7 +92,7 @@ class TextDisplay(Component):
                 self.label.upper(),
                 (x + width // 2, current_y + label_height // 2),
                 font=label_font,
-                color=self.label_color,
+                color=label_color,
                 anchor="mm",
             )
             current_y += label_height + gap
@@ -99,7 +108,7 @@ class TextDisplay(Component):
             self.text,
             (text_x, current_y + text_height // 2),
             font=text_font,
-            color=self.color,
+            color=text_color,
             anchor=f"{anchor_h}m",
         )
 
@@ -127,7 +136,7 @@ class TextWidget(Widget):
             Component tree for rendering
         """
         text = self._get_text(state)
-        color = self.config.color or COLOR_WHITE
+        color = self.config.color or THEME_TEXT_PRIMARY
         align = ALIGN_MAP.get(self.align, "center")
 
         return TextDisplay(

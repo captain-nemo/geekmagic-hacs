@@ -8,11 +8,19 @@ from typing import TYPE_CHECKING, Any
 from ..const import (
     COLOR_CYAN,
     COLOR_GOLD,
-    COLOR_GRAY,
-    COLOR_WHITE,
 )
 from .base import Widget, WidgetConfig
-from .components import Column, Component, Icon, Padding, Row, Stack, Text
+from .components import (
+    THEME_TEXT_PRIMARY,
+    THEME_TEXT_SECONDARY,
+    Column,
+    Component,
+    Icon,
+    Padding,
+    Row,
+    Stack,
+    Text,
+)
 
 if TYPE_CHECKING:
     from ..render_context import RenderContext
@@ -82,8 +90,12 @@ class WeatherDisplay(Component):
         main_weather = Column(
             children=[
                 Icon(icon_name, size=icon_size, color=COLOR_GOLD),
-                Text(temp_str, font="xlarge", color=COLOR_WHITE),
-                Text(self.condition.replace("-", " ").title(), font="small", color=COLOR_GRAY),
+                Text(temp_str, font="xlarge", color=THEME_TEXT_PRIMARY),
+                Text(
+                    self.condition.replace("-", " ").title(),
+                    font="small",
+                    color=THEME_TEXT_SECONDARY,
+                ),
             ],
             gap=int(height * 0.04),
             align="center",
@@ -129,9 +141,9 @@ class WeatherDisplay(Component):
                     forecast_columns.append(
                         Column(
                             children=[
-                                Text(day_name.upper(), font="tiny", color=COLOR_GRAY),
-                                Icon(day_icon, size=forecast_icon_size, color=COLOR_GRAY),
-                                Text(temp_str, font="tiny", color=COLOR_WHITE),
+                                Text(day_name.upper(), font="tiny", color=THEME_TEXT_SECONDARY),
+                                Icon(day_icon, size=forecast_icon_size, color=THEME_TEXT_SECONDARY),
+                                Text(temp_str, font="tiny", color=THEME_TEXT_PRIMARY),
                             ],
                             gap=int(height * 0.02),
                             align="center",
@@ -200,7 +212,7 @@ class WeatherDisplay(Component):
         left_side = Icon(icon_name, size=icon_size, color=COLOR_GOLD)
 
         # Right side: temperature and optionally humidity
-        right_children = [Text(temp_str, font="large", color=COLOR_WHITE, align="end")]
+        right_children = [Text(temp_str, font="large", color=THEME_TEXT_PRIMARY, align="end")]
 
         if self.show_humidity:
             right_children.append(
@@ -227,8 +239,8 @@ def _weather_placeholder() -> Component:
     """Create placeholder component when no weather data."""
     return Column(
         children=[
-            Icon("weather-cloudy", color=COLOR_GRAY, max_size=48),
-            Text("No Weather Data", font="small", color=COLOR_GRAY),
+            Icon("weather-cloudy", color=THEME_TEXT_SECONDARY, max_size=48),
+            Text("No Weather Data", font="small", color=THEME_TEXT_SECONDARY),
         ],
         gap=8,
         align="center",
