@@ -124,6 +124,8 @@ class Text(Component):
     - A specific RGB tuple like (255, 255, 255)
     - THEME_TEXT_PRIMARY for main text (resolves to theme.text_primary)
     - THEME_TEXT_SECONDARY for labels/secondary text (resolves to theme.text_secondary)
+
+    When truncate=True, text that exceeds available width is truncated with ellipsis.
     """
 
     text: str
@@ -131,15 +133,37 @@ class Text(Component):
     bold: bool = False
     color: Color = THEME_TEXT_PRIMARY  # Theme-aware by default
     align: Align = "center"
+    truncate: bool = False  # Auto-truncate with ellipsis if text exceeds width
 
     def measure(self, ctx: RenderContext, max_width: int, max_height: int) -> tuple[int, int]:
         font = ctx.get_font(self.font, bold=self.bold)
         return ctx.get_text_size(self.text, font)
 
+    def _truncate_text(self, ctx: RenderContext, text: str, font, max_width: int) -> str:
+        """Truncate text with ellipsis to fit within max_width."""
+        if max_width <= 0:
+            return ""
+        text_width, _ = ctx.get_text_size(text, font)
+        if text_width <= max_width:
+            return text
+        ellipsis = ".."
+        while len(text) > 1:
+            text = text[:-1]
+            test_text = text + ellipsis
+            text_width, _ = ctx.get_text_size(test_text, font)
+            if text_width <= max_width:
+                return test_text
+        return ellipsis
+
     def render(self, ctx: RenderContext, x: int, y: int, width: int, height: int) -> None:
         font = ctx.get_font(self.font, bold=self.bold)
         anchor_map = {"start": "lm", "center": "mm", "end": "rm", "stretch": "mm"}
         anchor = anchor_map.get(self.align, "mm")
+
+        # Apply truncation if enabled
+        display_text = self.text
+        if self.truncate:
+            display_text = self._truncate_text(ctx, self.text, font, width)
 
         if self.align == "start":
             text_x = x
@@ -150,7 +174,7 @@ class Text(Component):
 
         # Resolve theme-aware colors at render time
         resolved_color = _resolve_color(self.color, ctx)
-        ctx.draw_text(self.text, (text_x, y + height // 2), font, resolved_color, anchor)
+        ctx.draw_text(display_text, (text_x, y + height // 2), font, resolved_color, anchor)
 
 
 @dataclass

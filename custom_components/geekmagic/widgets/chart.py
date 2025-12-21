@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 from ..const import COLOR_CYAN
 from .base import Widget, WidgetConfig
-from .components import THEME_TEXT_SECONDARY, Color, Component
+from .components import THEME_TEXT_SECONDARY, Color, Component, Row, Spacer, Text
 
 if TYPE_CHECKING:
     from ..render_context import RenderContext
@@ -34,7 +34,6 @@ class ChartDisplay(Component):
     def render(self, ctx: RenderContext, x: int, y: int, width: int, height: int) -> None:
         """Render chart with header, sparkline, and optional range."""
         font_label = ctx.get_font("small")
-        font_value = ctx.get_font("regular")
         padding = int(width * 0.08)
 
         # Calculate chart area
@@ -48,46 +47,33 @@ class ChartDisplay(Component):
         chart_bottom = y + height - footer_height
         chart_rect = (x + padding, chart_top, x + width - padding, chart_bottom)
 
-        # Draw header with label and value
-        header_y = y + int(height * 0.08)
-        available_width = width - padding * 2
-        gap = 8  # Minimum gap between label and value
-
-        # Measure value first (takes priority)
-        value_str = ""
-        value_width = 0
+        # Build header using declarative components
+        header_children: list[Component] = []
+        if self.label:
+            header_children.append(
+                Text(
+                    text=self.label.upper(),
+                    font="small",
+                    color=THEME_TEXT_SECONDARY,
+                    align="start",
+                    truncate=True,  # Auto-truncate if needed
+                )
+            )
         if self.current_value is not None:
             value_str = f"{self.current_value:.1f}{self.unit}"
-            value_width, _ = ctx.get_text_size(value_str, font_value)
-
-        # Calculate max label width
-        max_label_width = available_width - value_width - gap if value_str else available_width
-
-        if self.label:
-            display_name = self.label.upper()
-            label_width, _ = ctx.get_text_size(display_name, font_label)
-
-            # Truncate label if needed
-            while label_width > max_label_width and len(display_name) > 3:
-                display_name = display_name[:-3] + ".."
-                label_width, _ = ctx.get_text_size(display_name, font_label)
-
-            ctx.draw_text(
-                display_name,
-                (x + padding, header_y),
-                font=font_label,
-                color=THEME_TEXT_SECONDARY,
-                anchor="lm",
+            if self.label:
+                header_children.append(Spacer())
+            header_children.append(
+                Text(text=value_str, font="regular", color=self.color, align="end")
             )
 
-        if value_str:
-            ctx.draw_text(
-                value_str,
-                (x + width - padding, header_y),
-                font=font_value,
-                color=self.color,
-                anchor="rm",
-            )
+        if header_children:
+            Row(
+                children=header_children,
+                gap=4,
+                padding=padding,
+                align="center",
+            ).render(ctx, x, y, width, header_height)
 
         # Draw chart
         if len(self.data) >= 2:
