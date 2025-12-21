@@ -50,7 +50,6 @@ class ProgressDisplay(Component):
     def render(self, ctx: RenderContext, x: int, y: int, width: int, height: int) -> None:
         """Render progress display."""
         padding = int(width * 0.05)
-        icon_size = max(10, int(height * 0.20))
         bar_height_mult = self.BAR_HEIGHT_MULTIPLIERS.get(self.bar_height_style, 0.17)
         bar_height = max(4, int(height * bar_height_mult))
 
@@ -60,25 +59,76 @@ class ProgressDisplay(Component):
         display_target = format_number(target)
         percent = min(100, (self.value / target) * 100) if target > 0 else 0
 
+        value_text = f"{display_value}/{display_target}" if self.show_target else display_value
+        if self.unit:
+            value_text += f" {self.unit}"
+        label_text = self.label.upper()
+
         # Adaptive layout based on size
-        is_compact = height < 100
+        # Compact: small cells in dense grids
+        # Standard: medium cells, horizontal layout
+        # Expanded: large cells, vertical layout with icon/label separate from value
+        is_compact = height < 80
+        is_expanded = height >= 150
 
-        if is_compact:
+        if is_expanded:
+            # Expanded: icon + label on top, value below, bar + percent at bottom
+            icon_size = max(16, int(height * 0.18))
+
+            # Row 1: Icon + Label (centered)
+            header_children: list[Component] = []
+            if self.icon:
+                header_children.append(Icon(name=self.icon, size=icon_size, color=self.color))
+            header_children.append(
+                Text(text=label_text, font="small", color=COLOR_GRAY, align="center")
+            )
+
+            # Row 2: Value (centered, larger)
+            value_row = Row(
+                children=[Text(text=value_text, font="large", color=COLOR_WHITE, align="center")],
+                justify="center",
+                padding=padding,
+            )
+
+            # Row 3: Bar + Percent
+            bar_row = Row(
+                children=[
+                    Bar(
+                        percent=percent,
+                        color=self.color,
+                        background=COLOR_DARK_GRAY,
+                        height=bar_height,
+                    ),
+                    Text(text=f"{percent:.0f}%", font="small", color=COLOR_WHITE, align="end"),
+                ],
+                gap=8,
+                align="center",
+                padding=padding,
+            )
+
+            Column(
+                children=[
+                    Row(children=header_children, gap=6, justify="center", padding=padding),
+                    value_row,
+                    bar_row,
+                ],
+                gap=int(height * 0.06),
+                justify="center",
+                align="stretch",
+            ).render(ctx, x, y, width, height)
+
+        elif is_compact:
             # Compact: icon + value on first line, bar + percent on second
-            value_text = f"{display_value}/{display_target}" if self.show_target else display_value
-            if self.unit:
-                value_text += f" {self.unit}"
+            icon_size = max(10, int(height * 0.20))
 
-            # Row 1: Icon + Value
-            row1_children = []
+            row1_children: list[Component] = []
             if self.icon:
                 row1_children.append(Icon(name=self.icon, size=icon_size, color=self.color))
             row1_children.append(
                 Text(text=value_text, font="small", color=COLOR_WHITE, align="start")
             )
 
-            # Row 2: Progress bar + percent
-            row2_children = [
+            row2_children: list[Component] = [
                 Bar(
                     percent=percent,
                     color=self.color,
@@ -88,7 +138,6 @@ class ProgressDisplay(Component):
                 Text(text=f"{percent:.0f}%", font="tiny", color=COLOR_WHITE, align="end"),
             ]
 
-            # Build column with two rows
             Column(
                 children=[
                     Row(children=row1_children, gap=4, align="center", padding=padding),
@@ -100,27 +149,22 @@ class ProgressDisplay(Component):
             ).render(ctx, x, y, width, height)
 
         else:
-            # Full layout: label + value on first line, bar + percent on second
-            value_text = f"{display_value}/{display_target}" if self.show_target else display_value
-            if self.unit:
-                value_text += f" {self.unit}"
+            # Standard: icon + label + value on first line, bar + percent on second
+            icon_size = max(10, int(height * 0.20))
 
-            # Top row: Icon + Label + Spacer + Value
-            top_row_children = []
+            top_row_children: list[Component] = []
             if self.icon:
                 top_row_children.append(Icon(name=self.icon, size=icon_size, color=self.color))
 
             # Check if label fits by measuring
             font_label = ctx.get_font("small")
             font_value = ctx.get_font("regular")
-            label_text = self.label.upper()
             label_width, _ = ctx.get_text_size(label_text, font_label)
             value_width, _ = ctx.get_text_size(value_text, font_value)
             icon_width = icon_size + 4 if self.icon else 0
             available_for_label = width - padding * 2 - icon_width - value_width - 8
 
             if available_for_label >= label_width:
-                # Label fits - add label, spacer, value
                 top_row_children.extend(
                     [
                         Text(text=label_text, font="small", color=COLOR_GRAY, align="start"),
@@ -129,13 +173,11 @@ class ProgressDisplay(Component):
                     ]
                 )
             else:
-                # Not enough space - value only
                 top_row_children.append(
                     Text(text=value_text, font="regular", color=COLOR_WHITE, align="start")
                 )
 
-            # Bottom row: Bar + Percent
-            bottom_row_children = [
+            bottom_row_children: list[Component] = [
                 Bar(
                     percent=percent,
                     color=self.color,
@@ -145,7 +187,6 @@ class ProgressDisplay(Component):
                 Text(text=f"{percent:.0f}%", font="small", color=COLOR_WHITE, align="end"),
             ]
 
-            # Build column with two rows
             Column(
                 children=[
                     Row(children=top_row_children, gap=4, align="center", padding=padding),
