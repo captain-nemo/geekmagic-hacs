@@ -889,15 +889,18 @@ let g = class extends I {
           <span class="layout-section-label">Layout</span>
           <div class="layout-picker">
             ${Object.entries(this._config.layout_types).map(
-      ([t, i]) => d`
+      ([t, i]) => {
+        var r;
+        return d`
                 <button
-                  class="layout-option ${this._editingView.layout === t ? "selected" : ""}"
+                  class="layout-option ${((r = this._editingView) == null ? void 0 : r.layout) === t ? "selected" : ""}"
                   @click=${() => this._updateEditingView({ layout: t })}
                   title="${i.name} (${i.slots} slots)"
                 >
                   ${this._renderLayoutIcon(t)}
                 </button>
-              `
+              `;
+      }
     )}
           </div>
         </div>
@@ -1400,6 +1403,9 @@ let g = class extends I {
   _renderPositionGrid(s, e, t) {
     let i = 2, r = !1;
     switch (t) {
+      case "fullscreen":
+        i = 1;
+        break;
       case "grid_2x2":
         i = 2;
         break;
@@ -1453,6 +1459,7 @@ let g = class extends I {
   }
   _renderLayoutIcon(s) {
     const t = {
+      fullscreen: { cls: "full", cells: 1 },
       grid_2x2: { cls: "g-2x2", cells: 4 },
       grid_2x3: { cls: "g-2x3", cells: 6 },
       grid_3x2: { cls: "g-3x2", cells: 6 },
@@ -1807,6 +1814,7 @@ g.styles = ue`
     }
 
     /* Layout icon patterns */
+    .layout-icon.full { grid-template: 1fr / 1fr; }
     .layout-icon.g-2x2 { grid-template: 1fr 1fr / 1fr 1fr; }
     .layout-icon.g-2x3 { grid-template: 1fr 1fr 1fr / 1fr 1fr; }
     .layout-icon.g-3x2 { grid-template: 1fr 1fr / 1fr 1fr 1fr; }

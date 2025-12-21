@@ -381,6 +381,7 @@ export class GeekMagicPanel extends LitElement {
     }
 
     /* Layout icon patterns */
+    .layout-icon.full { grid-template: 1fr / 1fr; }
     .layout-icon.g-2x2 { grid-template: 1fr 1fr / 1fr 1fr; }
     .layout-icon.g-2x3 { grid-template: 1fr 1fr 1fr / 1fr 1fr; }
     .layout-icon.g-3x2 { grid-template: 1fr 1fr / 1fr 1fr 1fr; }
@@ -971,7 +972,7 @@ export class GeekMagicPanel extends LitElement {
             ${Object.entries(this._config.layout_types).map(
               ([key, info]) => html`
                 <button
-                  class="layout-option ${this._editingView.layout === key
+                  class="layout-option ${this._editingView?.layout === key
                     ? "selected"
                     : ""}"
                   @click=${() => this._updateEditingView({ layout: key })}
@@ -1613,6 +1614,10 @@ export class GeekMagicPanel extends LitElement {
     let isHero = false;
 
     switch (layout) {
+      case "fullscreen":
+        cols = 1;
+        rows = 1;
+        break;
       case "grid_2x2":
         cols = 2;
         rows = 2;
@@ -1684,6 +1689,7 @@ export class GeekMagicPanel extends LitElement {
   private _renderLayoutIcon(key: string) {
     // Map layout key to CSS class and cell count
     const layoutConfig: Record<string, { cls: string; cells: number }> = {
+      fullscreen: { cls: "full", cells: 1 },
       grid_2x2: { cls: "g-2x2", cells: 4 },
       grid_2x3: { cls: "g-2x3", cells: 6 },
       grid_3x2: { cls: "g-3x2", cells: 6 },

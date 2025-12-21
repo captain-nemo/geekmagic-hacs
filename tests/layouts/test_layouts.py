@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import pytest
 
 from custom_components.geekmagic.layouts.base import Slot
+from custom_components.geekmagic.layouts.fullscreen import FullscreenLayout
 from custom_components.geekmagic.layouts.grid import Grid2x2, Grid2x3, Grid3x3, GridLayout
 from custom_components.geekmagic.layouts.hero import HeroLayout
 from custom_components.geekmagic.layouts.split import (
@@ -289,6 +290,49 @@ class TestThreeColumnLayout:
         """Test rendering three column layout."""
         img, draw = canvas
         layout = ThreeColumnLayout()
+
+        layout.render(renderer, draw)
+        assert img.size == (480, 480)
+
+
+class TestFullscreenLayout:
+    """Tests for FullscreenLayout."""
+
+    def test_init(self):
+        """Test fullscreen layout initialization."""
+        layout = FullscreenLayout()
+        assert layout.get_slot_count() == 1
+
+    def test_slot_is_fullscreen(self):
+        """Test that the single slot covers the entire display."""
+        layout = FullscreenLayout()
+        slot = layout.slots[0]
+        x1, y1, x2, y2 = slot.rect
+        assert (x1, y1) == (0, 0)
+        assert (x2, y2) == (240, 240)
+
+    def test_no_padding(self):
+        """Test that padding is always 0."""
+        layout = FullscreenLayout()
+        assert layout.padding == 0
+
+    def test_padding_ignored(self):
+        """Test that padding parameter is ignored."""
+        layout = FullscreenLayout(padding=8)  # Should be ignored
+        assert layout.padding == 0
+        slot = layout.slots[0]
+        x1, y1, x2, y2 = slot.rect
+        assert (x1, y1) == (0, 0)
+        assert (x2, y2) == (240, 240)
+
+    def test_render(self, renderer, canvas):
+        """Test rendering fullscreen layout."""
+        img, draw = canvas
+        layout = FullscreenLayout()
+
+        config = WidgetConfig(widget_type="clock", slot=0)
+        widget = ClockWidget(config)
+        layout.set_widget(0, widget)
 
         layout.render(renderer, draw)
         assert img.size == (480, 480)
