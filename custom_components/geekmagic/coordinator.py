@@ -75,6 +75,7 @@ from .renderer import Renderer
 from .widgets.base import WidgetConfig
 from .widgets.camera import CameraWidget
 from .widgets.chart import ChartWidget
+from .widgets.climate import ClimateWidget
 from .widgets.clock import ClockWidget
 from .widgets.entity import EntityWidget
 from .widgets.gauge import GaugeWidget
@@ -120,6 +121,7 @@ LAYOUT_CLASSES = {
 
 WIDGET_CLASSES = {
     "camera": CameraWidget,
+    "climate": ClimateWidget,
     "clock": ClockWidget,
     "entity": EntityWidget,
     "media": MediaWidget,

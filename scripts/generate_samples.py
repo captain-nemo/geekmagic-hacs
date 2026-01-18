@@ -67,6 +67,7 @@ from custom_components.geekmagic.widgets import (
     WeatherWidget,
     WidgetConfig,
 )
+from custom_components.geekmagic.widgets.climate import ClimateWidget
 from custom_components.geekmagic.widgets.theme import THEMES
 from scripts.mock_hass import (
     MockHass,
@@ -318,6 +319,17 @@ def generate_widget_sizes(renderer: Renderer, output_dir: Path) -> None:
             "media_duration": 354,
         },
     )
+    hass.states.set(
+        "climate.thermostat",
+        "heat",
+        {
+            "friendly_name": "Thermostat",
+            "current_temperature": 21.5,
+            "temperature": 22,
+            "humidity": 58,
+            "hvac_action": "heating",
+        },
+    )
 
     # Create fake album art for media widget
     media_album_art = create_fake_album_art(300)
@@ -472,6 +484,17 @@ def generate_widget_sizes(renderer: Renderer, output_dir: Path) -> None:
             )
         )
 
+    def make_climate(slot: int) -> ClimateWidget:
+        return ClimateWidget(
+            WidgetConfig(
+                widget_type="climate",
+                slot=slot,
+                entity_id="climate.thermostat",
+                color=COLOR_ORANGE,
+                options={"show_target": True, "show_humidity": True, "show_mode": True},
+            )
+        )
+
     # Chart history data - keyed by widget_name
     chart_histories: dict[str, list[float]] = {
         "chart": [20, 21, 22, 21, 23, 24, 23, 22, 21, 22, 23, 24],
@@ -493,6 +516,7 @@ def generate_widget_sizes(renderer: Renderer, output_dir: Path) -> None:
         ("chart", make_chart),
         ("chart_binary", make_chart_binary),
         ("media", make_media),
+        ("climate", make_climate),
     ]
 
     # Layout configs: (suffix, layout_class, num_slots, padding, gap)
@@ -1131,28 +1155,25 @@ def generate_network_monitor(renderer: Renderer, output_dir: Path) -> None:
 
 
 def generate_thermostat(renderer: Renderer, output_dir: Path) -> None:
-    """Generate thermostat dashboard using HeroLayout."""
+    """Generate thermostat dashboard using HeroLayout with ClimateWidget."""
     hass = MockHass()
     create_thermostat_states(hass)
 
     layout = HeroLayout(footer_slots=3, hero_ratio=0.7, padding=8, gap=8)
     img, draw = renderer.create_canvas()
 
-    # Hero: Temperature gauge (using arc style for thermostat look)
-    # Read from "temperature" attribute since climate entity state is HVAC mode
-    thermostat = GaugeWidget(
+    # Hero: Climate widget showing current temp, target, and hvac status
+    thermostat = ClimateWidget(
         WidgetConfig(
-            widget_type="gauge",
+            widget_type="climate",
             slot=0,
             entity_id="climate.main",
-            label="Target",
+            label="Thermostat",
             color=COLOR_ORANGE,
             options={
-                "style": "arc",
-                "min": 15,
-                "max": 30,
-                "unit": "°C",
-                "attribute": "temperature",
+                "show_target": True,
+                "show_humidity": True,
+                "show_mode": True,
             },
         )
     )

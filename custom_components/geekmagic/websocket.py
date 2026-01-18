@@ -244,6 +244,16 @@ WIDGET_TYPE_SCHEMAS: dict[str, dict[str, Any]] = {
             {"key": "show_label", "type": "boolean", "label": "Show Label", "default": False},
         ],
     },
+    "climate": {
+        "name": "Climate",
+        "needs_entity": True,
+        "entity_domains": ["climate"],
+        "options": [
+            {"key": "show_target", "type": "boolean", "label": "Show Target Temp", "default": True},
+            {"key": "show_humidity", "type": "boolean", "label": "Show Humidity", "default": True},
+            {"key": "show_mode", "type": "boolean", "label": "Show HVAC Mode", "default": True},
+        ],
+    },
     "multi_progress": {
         "name": "Multi Progress",
         "needs_entity": False,

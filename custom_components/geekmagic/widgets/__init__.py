@@ -3,6 +3,7 @@
 from .base import Widget, WidgetConfig
 from .camera import CameraWidget
 from .chart import ChartWidget
+from .climate import ClimateWidget
 from .clock import ClockWidget
 from .entity import EntityWidget
 from .gauge import GaugeWidget
@@ -16,6 +17,7 @@ from .weather import WeatherWidget
 __all__ = [
     "CameraWidget",
     "ChartWidget",
+    "ClimateWidget",
     "ClockWidget",
     "EntityWidget",
     "GaugeWidget",

@@ -85,6 +85,7 @@ Entities like lights, switches, and fans show different icons based on their sta
 | **Weather** | <img src="samples/widgets/weather_1x1.png"> | <img src="samples/widgets/weather_1x2.png"> | <img src="samples/widgets/weather_2x1.png"> | <img src="samples/widgets/weather_2x2.png"> | <img src="samples/widgets/weather_2x3.png"> | <img src="samples/widgets/weather_3x3.png"> |
 | **Status** | <img src="samples/widgets/status_1x1.png"> | <img src="samples/widgets/status_1x2.png"> | <img src="samples/widgets/status_2x1.png"> | <img src="samples/widgets/status_2x2.png"> | <img src="samples/widgets/status_2x3.png"> | <img src="samples/widgets/status_3x3.png"> |
 | **Chart** | <img src="samples/widgets/chart_1x1.png"> | <img src="samples/widgets/chart_1x2.png"> | <img src="samples/widgets/chart_2x1.png"> | <img src="samples/widgets/chart_2x2.png"> | <img src="samples/widgets/chart_2x3.png"> | <img src="samples/widgets/chart_3x3.png"> |
+| **Climate** | <img src="samples/widgets/climate_1x1.png"> | <img src="samples/widgets/climate_1x2.png"> | <img src="samples/widgets/climate_2x1.png"> | <img src="samples/widgets/climate_2x2.png"> | <img src="samples/widgets/climate_2x3.png"> | <img src="samples/widgets/climate_3x3.png"> |
 
 ## Layout Examples
 
@@ -328,6 +329,7 @@ data:
 |------|-------------|
 | `gauge` | Bar, ring, or arc gauge (`style: bar/ring/arc`) |
 | `entity` | Any HA entity value (with optional `icon`) |
+| `climate` | Thermostat/HVAC (`show_target`, `show_humidity`, `show_mode`) |
 | `clock` | Time and date |
 | `text` | Static or dynamic text |
 | `progress` | Goal tracking with progress bar |

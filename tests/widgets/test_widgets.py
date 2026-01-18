@@ -16,6 +16,7 @@ from custom_components.geekmagic.render_context import RenderContext
 from custom_components.geekmagic.renderer import Renderer
 from custom_components.geekmagic.widgets.base import WidgetConfig
 from custom_components.geekmagic.widgets.chart import ChartWidget
+from custom_components.geekmagic.widgets.climate import ClimateWidget
 from custom_components.geekmagic.widgets.clock import ClockWidget
 from custom_components.geekmagic.widgets.entity import EntityWidget
 from custom_components.geekmagic.widgets.gauge import GaugeWidget
@@ -1377,5 +1378,231 @@ class TestWeatherWidget:
         )
         widget = WeatherWidget(config)
         state = _build_widget_state(hass, "weather.home")
+        widget.render(ctx, state)
+        assert img.size == (480, 480)
+
+
+class TestClimateWidget:
+    """Tests for ClimateWidget."""
+
+    def test_init(self):
+        """Test climate widget initialization."""
+        config = WidgetConfig(
+            widget_type="climate",
+            slot=0,
+            entity_id="climate.thermostat",
+        )
+        widget = ClimateWidget(config)
+        assert widget.show_target is True
+        assert widget.show_humidity is True
+        assert widget.show_mode is True
+
+    def test_init_with_options(self):
+        """Test climate widget with custom options."""
+        config = WidgetConfig(
+            widget_type="climate",
+            slot=0,
+            entity_id="climate.thermostat",
+            options={"show_target": False, "show_humidity": False, "show_mode": False},
+        )
+        widget = ClimateWidget(config)
+        assert widget.show_target is False
+        assert widget.show_humidity is False
+        assert widget.show_mode is False
+
+    def test_get_entities(self):
+        """Test entity dependencies."""
+        config = WidgetConfig(
+            widget_type="climate",
+            slot=0,
+            entity_id="climate.thermostat",
+        )
+        widget = ClimateWidget(config)
+        assert widget.get_entities() == ["climate.thermostat"]
+
+    def test_render_without_entity(self, renderer, canvas, rect):
+        """Test rendering without entity shows placeholder."""
+        img, draw = canvas
+        ctx = RenderContext(draw, rect, renderer)
+
+        config = WidgetConfig(widget_type="climate", slot=0)
+        widget = ClimateWidget(config)
+        state = _build_widget_state()
+        widget.render(ctx, state)
+        assert img.size == (480, 480)
+
+    def test_render_heating(self, renderer, canvas, rect, hass):
+        """Test rendering climate entity in heating mode."""
+        img, draw = canvas
+        ctx = RenderContext(draw, rect, renderer)
+        hass.states.async_set(
+            "climate.thermostat",
+            "heat",
+            {
+                "friendly_name": "Thermostat",
+                "current_temperature": 20.5,
+                "temperature": 22,
+                "hvac_action": "heating",
+                "humidity": 45,
+            },
+        )
+
+        config = WidgetConfig(
+            widget_type="climate",
+            slot=0,
+            entity_id="climate.thermostat",
+        )
+        widget = ClimateWidget(config)
+        state = _build_widget_state(hass, "climate.thermostat")
+        widget.render(ctx, state)
+        assert img.size == (480, 480)
+
+    def test_render_cooling(self, renderer, canvas, rect, hass):
+        """Test rendering climate entity in cooling mode."""
+        img, draw = canvas
+        ctx = RenderContext(draw, rect, renderer)
+        hass.states.async_set(
+            "climate.thermostat",
+            "cool",
+            {
+                "friendly_name": "AC",
+                "current_temperature": 26,
+                "temperature": 23,
+                "hvac_action": "cooling",
+            },
+        )
+
+        config = WidgetConfig(
+            widget_type="climate",
+            slot=0,
+            entity_id="climate.thermostat",
+        )
+        widget = ClimateWidget(config)
+        state = _build_widget_state(hass, "climate.thermostat")
+        widget.render(ctx, state)
+        assert img.size == (480, 480)
+
+    def test_render_idle(self, renderer, canvas, rect, hass):
+        """Test rendering climate entity in idle state."""
+        img, draw = canvas
+        ctx = RenderContext(draw, rect, renderer)
+        hass.states.async_set(
+            "climate.thermostat",
+            "heat",
+            {
+                "friendly_name": "Thermostat",
+                "current_temperature": 22,
+                "temperature": 22,
+                "hvac_action": "idle",
+            },
+        )
+
+        config = WidgetConfig(
+            widget_type="climate",
+            slot=0,
+            entity_id="climate.thermostat",
+        )
+        widget = ClimateWidget(config)
+        state = _build_widget_state(hass, "climate.thermostat")
+        widget.render(ctx, state)
+        assert img.size == (480, 480)
+
+    def test_render_off(self, renderer, canvas, rect, hass):
+        """Test rendering climate entity in off state."""
+        img, draw = canvas
+        ctx = RenderContext(draw, rect, renderer)
+        hass.states.async_set(
+            "climate.thermostat",
+            "off",
+            {
+                "friendly_name": "Thermostat",
+                "current_temperature": 18,
+            },
+        )
+
+        config = WidgetConfig(
+            widget_type="climate",
+            slot=0,
+            entity_id="climate.thermostat",
+        )
+        widget = ClimateWidget(config)
+        state = _build_widget_state(hass, "climate.thermostat")
+        widget.render(ctx, state)
+        assert img.size == (480, 480)
+
+    def test_render_compact_mode(self, renderer, hass):
+        """Test rendering in compact mode (small container)."""
+        img, draw = renderer.create_canvas()
+        # Small rect to trigger compact mode
+        small_rect = (10, 10, 70, 70)
+        ctx = RenderContext(draw, small_rect, renderer)
+        hass.states.async_set(
+            "climate.thermostat",
+            "heat",
+            {
+                "current_temperature": 21,
+                "temperature": 23,
+                "hvac_action": "heating",
+            },
+        )
+
+        config = WidgetConfig(
+            widget_type="climate",
+            slot=0,
+            entity_id="climate.thermostat",
+        )
+        widget = ClimateWidget(config)
+        state = _build_widget_state(hass, "climate.thermostat")
+        widget.render(ctx, state)
+        assert img.size == (480, 480)
+
+    def test_render_medium_mode(self, renderer, hass):
+        """Test rendering in medium mode."""
+        img, draw = renderer.create_canvas()
+        # Medium rect
+        medium_rect = (10, 10, 90, 90)
+        ctx = RenderContext(draw, medium_rect, renderer)
+        hass.states.async_set(
+            "climate.thermostat",
+            "cool",
+            {
+                "current_temperature": 25,
+                "temperature": 22,
+                "hvac_action": "cooling",
+            },
+        )
+
+        config = WidgetConfig(
+            widget_type="climate",
+            slot=0,
+            entity_id="climate.thermostat",
+        )
+        widget = ClimateWidget(config)
+        state = _build_widget_state(hass, "climate.thermostat")
+        widget.render(ctx, state)
+        assert img.size == (480, 480)
+
+    def test_render_auto_mode(self, renderer, canvas, rect, hass):
+        """Test rendering climate entity in auto mode."""
+        img, draw = canvas
+        ctx = RenderContext(draw, rect, renderer)
+        hass.states.async_set(
+            "climate.thermostat",
+            "auto",
+            {
+                "friendly_name": "Smart Thermostat",
+                "current_temperature": 21.5,
+                "temperature": 22,
+                "hvac_action": "idle",
+            },
+        )
+
+        config = WidgetConfig(
+            widget_type="climate",
+            slot=0,
+            entity_id="climate.thermostat",
+        )
+        widget = ClimateWidget(config)
+        state = _build_widget_state(hass, "climate.thermostat")
         widget.render(ctx, state)
         assert img.size == (480, 480)
