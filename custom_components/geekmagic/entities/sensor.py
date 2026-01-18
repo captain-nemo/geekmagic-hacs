@@ -84,7 +84,6 @@ class GeekMagicStorageUsedSensor(GeekMagicEntity, SensorEntity):
     _attr_name = "Storage Used"
     _attr_icon = "mdi:harddisk"
     _attr_native_unit_of_measurement = PERCENTAGE
-    _attr_device_class = SensorDeviceClass.DATA_SIZE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: GeekMagicCoordinator) -> None:
