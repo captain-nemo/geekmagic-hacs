@@ -50,6 +50,11 @@
         "name": "Display Rotation"
       }
     },
+    "switch": {
+      "view_cycling": {
+        "name": "View Cycling"
+      }
+    },
     "text": {
       "screen_name": {
         "name": "Name"
