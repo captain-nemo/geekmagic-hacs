@@ -850,6 +850,10 @@ export class GeekMagicPanel extends LitElement {
 
     return html`
       <div class="header">
+        <ha-menu-button
+          .hass=${this.hass}
+          .narrow=${this.narrow}
+        ></ha-menu-button>
         <ha-icon icon="mdi:monitor-dashboard"></ha-icon>
         <span class="header-title">GeekMagic</span>
       </div>
