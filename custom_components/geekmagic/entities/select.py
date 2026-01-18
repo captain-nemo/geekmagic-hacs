@@ -57,6 +57,10 @@ class GeekMagicDisplaySelect(GeekMagicEntity, SelectEntity):
     Combines device built-in modes (Clock, Weather, System Info) with
     custom views configured in the integration. This provides a single
     control point for users to choose what appears on the display.
+
+    Note: This entity intentionally does not update state during automatic
+    view cycling to prevent spamming the recorder/logbook. State only updates
+    when the user explicitly selects an option or when available options change.
     """
 
     _attr_name = "Display"
@@ -65,6 +69,8 @@ class GeekMagicDisplaySelect(GeekMagicEntity, SelectEntity):
     def __init__(self, coordinator: GeekMagicCoordinator) -> None:
         """Initialize display select."""
         super().__init__(coordinator, "display")
+        # Track last known options to detect when views are added/removed
+        self._last_options: list[str] | None = None
 
     def _get_custom_view_names(self) -> list[str]:
         """Get list of custom view names."""
@@ -132,6 +138,29 @@ class GeekMagicDisplaySelect(GeekMagicEntity, SelectEntity):
                 self.coordinator.set_display_mode("custom", view_idx)
                 # Immediate refresh to show the custom view
                 await self.coordinator.async_refresh_display()
+
+        # Explicitly write state after user selection
+        self.async_write_ha_state()
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle coordinator update.
+
+        Override to prevent state updates during automatic view cycling.
+        This prevents spamming the recorder/logbook when cycle interval is enabled.
+        State is only written when:
+        - User explicitly selects an option (in async_select_option)
+        - Available options change (views added/removed)
+        """
+        current_options = self.options
+        if self._last_options is None:
+            # First update - record options and write state
+            self._last_options = current_options
+            self.async_write_ha_state()
+        elif current_options != self._last_options:
+            # Options changed (views added/removed) - update state
+            self._last_options = current_options
+            self.async_write_ha_state()
+        # Otherwise: do NOT write state (cycling doesn't trigger recorder)
 
 
 # Rotation options mapping display name to degrees
