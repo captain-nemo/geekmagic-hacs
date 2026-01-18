@@ -8,8 +8,12 @@ import time
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
+if TYPE_CHECKING:
+    import asyncio
+
 from homeassistant.const import __version__ as ha_version
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -223,6 +227,7 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
         # Notification state
         self._notification_expiry: float = 0
         self._notification_data: dict[str, Any] | None = None
+        self._notification_clear_handle: asyncio.TimerHandle | None = None
 
         # Display mode tracking
         # "custom" = integration renders views, "builtin" = device shows built-in mode
@@ -707,8 +712,14 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
         self._notification_data = data
         self._notification_expiry = time.time() + duration
 
-        # Schedule cleanup
-        self.hass.loop.call_later(duration, self._clear_notification)
+        # Cancel any pending clear callback to prevent race conditions
+        if self._notification_clear_handle is not None:
+            self._notification_clear_handle.cancel()
+
+        # Schedule cleanup and store handle for potential cancellation
+        self._notification_clear_handle = self.hass.loop.call_later(
+            duration, self._clear_notification
+        )
 
         # Force immediate refresh
         await self.async_request_refresh()
@@ -717,6 +728,7 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
         """Clear the active notification and refresh."""
         self._notification_expiry = 0
         self._notification_data = None
+        self._notification_clear_handle = None
         # Use fire-and-forget for the refresh since this is a callback
         self.hass.async_create_task(self.async_request_refresh())
 
@@ -1138,9 +1150,8 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
         Args:
             source: Entity ID
         """
-        import aiohttp
-
         # Get state for the entity
+        image_url = None
         state = self.hass.states.get(source)
         if state:
             image_url = state.attributes.get("entity_picture")
@@ -1159,10 +1170,9 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
         full_url = f"{base_url.rstrip('/')}/{image_url.lstrip('/')}"
 
         try:
-            async with (
-                aiohttp.ClientSession() as session,
-                session.get(full_url, timeout=aiohttp.ClientTimeout(total=10)) as response,
-            ):
+            # Use Home Assistant's managed session for proper SSL/auth handling
+            session = async_get_clientsession(self.hass)
+            async with session.get(full_url, timeout=10) as response:
                 if response.status == 200:
                     image_data = await response.read()
                     self._camera_images[source] = image_data
