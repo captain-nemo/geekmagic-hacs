@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 from ..const import COLOR_CYAN, PLACEHOLDER_NAME, PLACEHOLDER_VALUE
 from .base import Widget, WidgetConfig
 from .components import (
-    THEME_TEXT_PRIMARY,
     THEME_TEXT_SECONDARY,
     Color,
     Column,
@@ -28,9 +27,7 @@ if TYPE_CHECKING:
 class AttributeListDisplay(Component):
     """Attribute list display component."""
 
-    items: list[tuple[str, str, Color]] = field(
-        default_factory=list
-    )  # (label, value, color)
+    items: list[tuple[str, str, Color]] = field(default_factory=list)  # (label, value, color)
     title: str | None = None
 
     def measure(self, ctx: RenderContext, max_width: int, max_height: int) -> tuple[int, int]:
@@ -53,14 +50,6 @@ class AttributeListDisplay(Component):
                     align="start",
                 )
             )
-
-        # Calculate dimensions for items
-        available_height = height - padding * 2
-        if self.title:
-            available_height -= int(height * 0.15)
-
-        row_count = len(self.items) or 1
-        row_height = min(int(height * 0.20), available_height // row_count)
 
         # Estimate max characters for label and value
         max_label_len = estimate_max_chars(width // 2, char_width=7, padding=10)
@@ -174,9 +163,7 @@ class AttributeListWidget(Widget):
             return "Yes" if value else "No"
         if isinstance(value, float):
             # Format floats with reasonable precision
-            if value == int(value):
-                return str(int(value))
-            return f"{value:.1f}"
+            return str(int(value)) if value == int(value) else f"{value:.1f}"
         if isinstance(value, list):
             return f"[{len(value)} items]"
         if isinstance(value, dict):
