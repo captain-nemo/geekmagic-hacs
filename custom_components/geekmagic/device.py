@@ -9,6 +9,8 @@ from urllib.parse import urlparse
 
 import aiohttp
 
+from .const import MODEL_PRO, MODEL_ULTRA, MODEL_UNKNOWN
+
 _LOGGER = logging.getLogger(__name__)
 
 TIMEOUT = aiohttp.ClientTimeout(total=30)
@@ -49,12 +51,18 @@ class SpaceInfo:
 class GeekMagicDevice:
     """HTTP client for GeekMagic display devices."""
 
-    def __init__(self, host: str, session: aiohttp.ClientSession | None = None) -> None:
+    def __init__(
+        self,
+        host: str,
+        session: aiohttp.ClientSession | None = None,
+        model: str = MODEL_UNKNOWN,
+    ) -> None:
         """Initialize the device client.
 
         Args:
             host: IP address, hostname, or URL of the device
             session: Optional aiohttp session (created if not provided)
+            model: Device model (MODEL_PRO, MODEL_ULTRA, or MODEL_UNKNOWN)
         """
         # Parse and normalize the host input to handle URLs
         if host.startswith(("http://", "https://")):
@@ -66,6 +74,7 @@ class GeekMagicDevice:
             self.base_url = f"http://{host}"
         self._session = session
         self._owns_session = session is None
+        self.model = model
 
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create the aiohttp session."""
@@ -309,3 +318,78 @@ class GeekMagicDevice:
         else:
             _LOGGER.debug("Connection test successful for %s", self.host)
             return ConnectionResult(success=True)
+
+    # Pro-specific navigation methods
+    # These simulate the physical button presses on SmallTV Pro devices
+
+    async def navigate_next(self) -> None:
+        """Navigate to next page (Pro devices).
+
+        Simulates pressing the right/next button on the device.
+        """
+        session = await self._get_session()
+        async with session.get(f"{self.base_url}/set?page=1") as response:
+            response.raise_for_status()
+        _LOGGER.debug("Navigated to next page")
+
+    async def navigate_previous(self) -> None:
+        """Navigate to previous page (Pro devices).
+
+        Simulates pressing the left/previous button on the device.
+        """
+        session = await self._get_session()
+        async with session.get(f"{self.base_url}/set?page=-1") as response:
+            response.raise_for_status()
+        _LOGGER.debug("Navigated to previous page")
+
+    async def navigate_enter(self) -> None:
+        """Press enter/exit button (Pro devices).
+
+        Simulates pressing the enter/menu button on the device.
+        """
+        session = await self._get_session()
+        async with session.get(f"{self.base_url}/set?enter=-1") as response:
+            response.raise_for_status()
+        _LOGGER.debug("Pressed enter button")
+
+    async def reboot(self) -> None:
+        """Reboot the device (Pro devices)."""
+        session = await self._get_session()
+        async with session.get(f"{self.base_url}/set?reboot=1") as response:
+            response.raise_for_status()
+        _LOGGER.debug("Rebooting device")
+
+    async def detect_model(self) -> str:
+        """Attempt to detect the device model.
+
+        Pro devices use /.sys/ paths, Ultra devices use root paths.
+        Returns MODEL_PRO, MODEL_ULTRA, or MODEL_UNKNOWN.
+        """
+        session = await self._get_session()
+
+        # Try Pro-specific path first (/.sys/app.json)
+        try:
+            async with session.get(
+                f"{self.base_url}/.sys/app.json", timeout=aiohttp.ClientTimeout(total=5)
+            ) as response:
+                if response.status == 200:
+                    self.model = MODEL_PRO
+                    _LOGGER.info("Detected device model: SmallTV Pro")
+                    return self.model
+        except Exception as err:
+            _LOGGER.debug("Pro path /.sys/app.json not available: %s", err)
+
+        # Fall back to Ultra (standard path works)
+        try:
+            async with session.get(
+                f"{self.base_url}/app.json", timeout=aiohttp.ClientTimeout(total=5)
+            ) as response:
+                if response.status == 200:
+                    self.model = MODEL_ULTRA
+                    _LOGGER.info("Detected device model: SmallTV Ultra")
+                    return self.model
+        except Exception as err:
+            _LOGGER.debug("Ultra path /app.json not available: %s", err)
+
+        _LOGGER.warning("Could not detect device model for %s", self.host)
+        return MODEL_UNKNOWN

@@ -54,6 +54,7 @@ from .const import (
     LAYOUT_SPLIT_V,
     LAYOUT_THREE_COLUMN,
     LAYOUT_THREE_ROW,
+    MODEL_PRO,
     THEME_CLASSIC,
 )
 from .device import DeviceState, GeekMagicDevice, SpaceInfo
@@ -557,11 +558,25 @@ class GeekMagicCoordinator(DataUpdateCoordinator):
             next_screen = (self._current_screen + 1) % len(self._layouts)
             await self.async_set_screen(next_screen)
 
+            # For Pro devices, also trigger device navigation to help refresh
+            if self.device.model == MODEL_PRO:
+                try:
+                    await self.device.navigate_next()
+                except Exception as err:
+                    _LOGGER.debug("Pro navigate_next failed (non-fatal): %s", err)
+
     async def async_previous_screen(self) -> None:
         """Switch to the previous screen."""
         if len(self._layouts) > 0:
             prev_screen = (self._current_screen - 1) % len(self._layouts)
             await self.async_set_screen(prev_screen)
+
+            # For Pro devices, also trigger device navigation to help refresh
+            if self.device.model == MODEL_PRO:
+                try:
+                    await self.device.navigate_previous()
+                except Exception as err:
+                    _LOGGER.debug("Pro navigate_previous failed (non-fatal): %s", err)
 
     def update_options(self, options: dict[str, Any]) -> None:
         """Update coordinator options.

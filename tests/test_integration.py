@@ -64,6 +64,7 @@ class TestIntegrationSetup:
             with patch("custom_components.geekmagic.GeekMagicDevice") as mock_device_class:
                 mock_device = MagicMock()
                 mock_device.test_connection = AsyncMock(return_value=True)
+                mock_device.detect_model = AsyncMock(return_value="ultra")
                 mock_device_class.return_value = mock_device
 
                 with patch(

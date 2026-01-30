@@ -2,6 +2,11 @@
 
 DOMAIN = "geekmagic"
 
+# Device models
+MODEL_ULTRA = "ultra"
+MODEL_PRO = "pro"
+MODEL_UNKNOWN = "unknown"
+
 # Display dimensions
 DISPLAY_WIDTH = 240
 DISPLAY_HEIGHT = 240

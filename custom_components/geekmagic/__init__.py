@@ -122,6 +122,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _LOGGER.debug("Successfully connected to GeekMagic device at %s", host)
 
+    # Detect device model (Pro vs Ultra)
+    await device.detect_model()
+
     # Create coordinator
     coordinator = GeekMagicCoordinator(
         hass=hass,
