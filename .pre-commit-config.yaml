@@ -38,6 +38,13 @@ repos:
         pass_filenames: false
         files: ^custom_components/geekmagic/frontend/src/.*\.ts$
 
+      - id: frontend-test
+        name: frontend test
+        entry: bash -c 'cd custom_components/geekmagic/frontend && npm test'
+        language: system
+        pass_filenames: false
+        files: ^custom_components/geekmagic/frontend/src/.*\.ts$
+
       - id: frontend-dist-check
         name: frontend dist check
         entry: ./scripts/check-frontend-dist.sh

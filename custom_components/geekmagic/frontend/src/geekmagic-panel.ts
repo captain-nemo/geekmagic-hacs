@@ -20,6 +20,7 @@ import type {
   StatusEntity,
   ColorThreshold,
 } from "./types";
+import { rgbToHex, parseColorInput, type RGBTuple } from "./color-utils";
 
 // Type declaration for Intl.supportedValuesOf (ES2022+)
 declare global {
@@ -60,57 +61,6 @@ function debounce<T extends (...args: unknown[]) => void>(
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => fn(...args), delay);
   };
-}
-
-// Color conversion helpers for hex input fallback (Safari compatibility)
-type RGBTuple = [number, number, number];
-
-function rgbToHex(rgb: RGBTuple | undefined): string {
-  if (!rgb || rgb.length !== 3) return "#000000";
-  const [r, g, b] = rgb;
-  return `#${[r, g, b].map((c) => Math.max(0, Math.min(255, c)).toString(16).padStart(2, "0")).join("")}`;
-}
-
-function parseColorInput(value: string): RGBTuple | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  // Try hex format: #RGB, #RRGGBB, RGB, RRGGBB
-  const hexMatch = trimmed.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
-  if (hexMatch) {
-    let hex = hexMatch[1];
-    // Expand shorthand (#RGB -> #RRGGBB)
-    if (hex.length === 3) {
-      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-    }
-    return [
-      parseInt(hex.slice(0, 2), 16),
-      parseInt(hex.slice(2, 4), 16),
-      parseInt(hex.slice(4, 6), 16),
-    ];
-  }
-
-  // Try comma-separated RGB: "255, 128, 0" or "255,128,0"
-  const rgbMatch = trimmed.match(/^(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})$/);
-  if (rgbMatch) {
-    const r = Math.min(255, parseInt(rgbMatch[1], 10));
-    const g = Math.min(255, parseInt(rgbMatch[2], 10));
-    const b = Math.min(255, parseInt(rgbMatch[3], 10));
-    return [r, g, b];
-  }
-
-  // Try rgb() format: "rgb(255, 128, 0)"
-  const rgbFuncMatch = trimmed.match(
-    /^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i
-  );
-  if (rgbFuncMatch) {
-    const r = Math.min(255, parseInt(rgbFuncMatch[1], 10));
-    const g = Math.min(255, parseInt(rgbFuncMatch[2], 10));
-    const b = Math.min(255, parseInt(rgbFuncMatch[3], 10));
-    return [r, g, b];
-  }
-
-  return null;
 }
 
 @customElement("geekmagic-panel")
